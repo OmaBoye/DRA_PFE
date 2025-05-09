@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Supprimer Patient{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-danger text-white">
+        <h5>Confirmer la suppression</h5>
+    </div>
+    <div class="card-body">
+        <p>Êtes-vous sûr de vouloir supprimer le patient <strong>{{ object }}</strong> ?</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Confirmer
+            </button>
+            <a href="{% url 'patients:list' %}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Annuler
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}

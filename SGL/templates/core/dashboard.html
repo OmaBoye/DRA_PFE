@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Tableau de Bord du Laboratoire{% endblock %}
+{% block page_title %}Tableau de Bord du Laboratoire{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="dashboard-grid">
+    <!-- Stats Cards - Modified with larger text and no icons -->
+    <div class="dashboard-card lab-card lab-card-primary">
+      <div class="card-content">
+        <div class="card-body p-3">
+          <div class="row">
+            <div class="col-12 text-center">
+              <div class="numbers">
+                <p class="text-lg mb-1 text-uppercase font-weight-bold">Patients</p>
+                <h2 class="font-weight-bolder">{{ patients_count }}</h2>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-card lab-card lab-card-info">
+      <div class="card-content">
+        <div class="card-body p-3">
+          <div class="row">
+            <div class="col-12 text-center">
+              <div class="numbers">
+                <p class="text-lg mb-1 text-uppercase font-weight-bold">Échantillons</p>
+                <h2 class="font-weight-bolder">{{ samples_count }}</h2>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-card lab-card lab-card-warning">
+      <div class="card-content">
+        <div class="card-body p-3">
+          <div class="row">
+            <div class="col-12 text-center">
+              <div class="numbers">
+                <p class="text-lg mb-1 text-uppercase font-weight-bold">Analyses</p>
+                <h2 class="font-weight-bolder">{{ analyses_count }}</h2>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-card lab-card lab-card-success">
+      <div class="card-content">
+        <div class="card-body p-3">
+          <div class="row">
+            <div class="col-12 text-center">
+              <div class="numbers">
+                <p class="text-lg mb-1 text-uppercase font-weight-bold">Résultats</p>
+                <h2 class="font-weight-bolder">{{ results_count }}</h2>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wide Chart Card -->
+    <div class="dashboard-card-wide lab-card">
+      <div class="card-header pb-0">
+        <h5>Activité de Traitement des Échantillons</h5>
+        <p class="text-md">
+          <i class="fas fa-circle text-primary text-xs"></i>
+          <span class="font-weight-bold mx-1">Cette Semaine</span>
+        </p>
+      </div>
+      <div class="card-body p-3">
+        <div class="chart-container">
+          <canvas id="activity-chart" class="chart-canvas" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Narrow Todo Card with improved spacing -->
+    <div class="dashboard-card-narrow lab-card h-100">
+      <div class="card-header pb-0">
+        <h5>Tâches du Laboratoire</h5>
+        <p class="text-md">
+          <i class="fas fa-check-circle text-success text-xs"></i>
+          <span class="font-weight-bold mx-1">{{ completed_tasks }} complétées</span>
+          sur {{ total_tasks }}
+        </p>
+      </div>
+      <div class="card-body p-3">
+        <div class="list-group list-group-flush">
+          {% for task in tasks %}
+          <div class="list-group-item border-0 d-flex align-items-center px-0 mb-2">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" {% if task.completed %}checked{% endif %}
+                     id="task-{{ task.id }}" onchange="updateTask({{ task.id }}, this.checked)">
+              <label class="form-check-label text-md" for="task-{{ task.id }}">
+                {{ task.description }}
+                <span class="badge bg-{{ task.priority_class }} ms-2">{{ task.get_priority_display }}</span>
+              </label>
+            </div>
+          </div>
+          {% empty %}
+          <p class="text-md text-muted">Aucune tâche trouvée</p>
+          {% endfor %}
+        </div>
+        <form class="mt-4" id="task-form">
+          <div class="d-flex align-items-center">
+            <input type="text" class="form-control form-control-lg flex-grow-1" placeholder="Ajouter une nouvelle tâche..." id="new-task">
+            <button type="submit" class="btn btn-primary btn-md ms-3">Ajouter</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Full Width Table -->
+    <div class="dashboard-card-full lab-card">
+      <div class="card-header pb-0">
+        <h5>Échantillons Récents</h5>
+        <p class="text-md">
+          <i class="fas fa-vial text-primary text-xs"></i>
+          <span class="font-weight-bold mx-1">10 derniers échantillons traités</span>
+        </p>
+      </div>
+      <div class="card-body px-0 pb-2">
+        <div class="table-responsive p-0">
+          <table class="table table-spacing align-items-center mb-0">
+            <thead>
+              <tr>
+                <th class="text-uppercase text-secondary text-md font-weight-bolder opacity-7">ID Échantillon</th>
+                <th class="text-uppercase text-secondary text-md font-weight-bolder opacity-7 ps-2">Patient</th>
+                <th class="text-uppercase text-secondary text-md font-weight-bolder opacity-7">Type</th>
+                <th class="text-uppercase text-secondary text-md font-weight-bolder opacity-7">Statut</th>
+                <th class="text-uppercase text-secondary text-md font-weight-bolder opacity-7">Date de Prélèvement</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sample in recent_samples %}
+              <tr>
+                <td>
+                  <div class="d-flex px-2 py-1">
+                    <div class="d-flex flex-column justify-content-center">
+                      <h6 class="mb-0 text-md">#{{ sample.id }}</h6>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <p class="text-md font-weight-bold mb-0">{{ sample.patient.full_name }}</p>
+                </td>
+                <td>
+                  <span class="badge bg-primary text-md">{{ sample.get_sample_type_display }}</span>
+                </td>
+                <td>
+                  <span class="badge bg-{{ sample.get_status_color }} text-md">{{ sample.get_status_display }}</span>
+                </td>
+                <td>
+                  <span class="text-md">{{ sample.collection_date|date:"d/m/Y H:i" }}</span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-center py-4 text-md">Aucun échantillon récent trouvé</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Activity Chart
+const ctx = document.getElementById('activity-chart').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+    datasets: [{
+      label: 'Échantillons Traités',
+      tension: 0.4,
+      borderWidth: 3,
+      pointRadius: 3,
+      borderColor: '#4680ff',
+      backgroundColor: 'rgba(70, 128, 255, 0.1)',
+      data: [12, 19, 15, 24, 18, 10, 5],
+      fill: true
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false }
+    }
+  }
+});
+
+// Task Management
+function updateTask(taskId, completed) {
+  fetch(`/tasks/${taskId}/update/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}'
+    },
+    body: JSON.stringify({completed: completed})
+  }).then(response => {
+    if (!response.ok) {
+      alert('Erreur lors de la mise à jour de la tâche');
+    }
+  });
+}
+
+document.getElementById('task-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const description = document.getElementById('new-task').value;
+  if (description.trim()) {
+    fetch('/tasks/create/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}'
+      },
+      body: JSON.stringify({description: description})
+    }).then(response => {
+      if (response.ok) {
+        location.reload();
+      } else {
+        alert('Erreur lors de la création de la tâche');
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

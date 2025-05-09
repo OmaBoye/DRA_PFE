@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Détails de l'Échantillon{% endblock %}
+{% block page_title %}Détails de l'Échantillon{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'samples:list' %}">Échantillons</a></li>
+<li class="breadcrumb-item active">Détails</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card lab-card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5>Échantillon #{{ sample.barcode }}</h5>
+                    <span class="badge bg-{{ sample.get_status_badge }}">{{ sample.get_status_display }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Sample details will be added dynamically -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Informations Patient</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Nom:</strong> {{ sample.patient }}</li>
+                            <li><strong>ID Patient:</strong> {{ sample.patient.id }}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Détails Échantillon</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Type:</strong> {{ sample.sample_type }}</li>
+                            <li><strong>Date Prélèvement:</strong> {{ sample.collection_date|date:"d/m/Y H:i" }}</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h6>Notes</h6>
+                    <div class="border p-3 bg-light">
+                        {{ sample.notes|default:"Aucune note."|linebreaks }}
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+                <a href="{% url 'samples:update' sample.id %}" class="btn btn-primary">
+                    <i class="fas fa-edit me-1"></i> Modifier
+                </a>
+                <a href="{% url 'samples:list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Retour
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card lab-card">
+            <div class="card-header">
+                <h5>QR Code</h5>
+            </div>
+            <div class="card-body text-center">
+                {% if sample.qr_code %}
+                <img src="{{ sample.qr_code.url }}" alt="QR Code" class="img-fluid mb-3" style="max-width: 200px;">
+                {% else %}
+                <p class="text-muted">QR Code non généré</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

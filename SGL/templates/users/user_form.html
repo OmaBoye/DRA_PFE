@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if object %}Modifier{% else %}Créer{% endif %} Utilisateur{% endblock %}
+
+{% block content %}
+<div class="form-card">
+    <div class="form-header">
+        <h2><i class="fas fa-user-edit me-2"></i>{% if object %}Modifier{% else %}Créer{% endif %} un Utilisateur</h2>
+        <p>Remplissez les informations de l'utilisateur</p>
+    </div>
+
+    <form method="post" class="form-body">
+        {% csrf_token %}
+
+        <div class="form-grid">
+            <!-- First Row -->
+            <div class="form-group">
+                <label for="{{ form.username.id_for_label }}" class="form-label required">Nom d'utilisateur</label>
+                <input type="text" id="{{ form.username.id_for_label }}" name="{{ form.username.name }}"
+                       value="{{ form.username.value|default_if_none:'' }}" class="form-control" required>
+                {% if form.username.errors %}
+                    <div class="invalid-feedback">{{ form.username.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.first_name.id_for_label }}" class="form-label">Prénom</label>
+                <input type="text" id="{{ form.first_name.id_for_label }}" name="{{ form.first_name.name }}"
+                       value="{{ form.first_name.value|default_if_none:'' }}" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.last_name.id_for_label }}" class="form-label">Nom</label>
+                <input type="text" id="{{ form.last_name.id_for_label }}" name="{{ form.last_name.name }}"
+                       value="{{ form.last_name.value|default_if_none:'' }}" class="form-control">
+            </div>
+
+            <!-- Second Row -->
+            <div class="form-group">
+                <label for="{{ form.email.id_for_label }}" class="form-label required">Email</label>
+                <input type="email" id="{{ form.email.id_for_label }}" name="{{ form.email.name }}"
+                       value="{{ form.email.value|default_if_none:'' }}" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.groups.id_for_label }}" class="form-label">Rôle</label>
+                <select id="{{ form.groups.id_for_label }}" name="{{ form.groups.name }}" class="form-control">
+                    <option value="" disabled selected>Sélectionner un rôle</option>
+                    {% for choice in form.groups.field.choices %}
+                        <option value="{{ choice.0 }}" {% if choice.0 in form.groups.value %}selected{% endif %}>
+                            {{ choice.1 }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Password Fields (for new users only) -->
+            {% if not object %}
+            <div class="form-group">
+                <label for="{{ form.password1.id_for_label }}" class="form-label required">Mot de passe</label>
+                <input type="password" id="{{ form.password1.id_for_label }}" name="{{ form.password1.name }}"
+                       class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.password2.id_for_label }}" class="form-label required">Confirmation</label>
+                <input type="password" id="{{ form.password2.id_for_label }}" name="{{ form.password2.name }}"
+                       class="form-control" required>
+            </div>
+            {% endif %}
+
+            <!-- Status Toggle -->
+            <div class="form-group flex-center">
+                <div class="status-toggle">
+                    <input type="checkbox" id="{{ form.is_active.id_for_label }}" name="{{ form.is_active.name }}"
+                           class="toggle-input" {% if form.is_active.value %}checked{% endif %}>
+                    <label for="{{ form.is_active.id_for_label }}" class="toggle-label">
+                        <span class="toggle-text">Actif</span>
+                        <span class="toggle-switch"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a href="{% url 'users:list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-1"></i> Annuler
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i> Enregistrer
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+    /* Base Form Styling */
+    .form-card {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    /* Improved Input Styling */
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        background-color: #f9fafb;
+    }
+
+    .form-control:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        background-color: white;
+    }
+
+    /* Working Toggle Switch */
+    .status-toggle {
+        display: flex;
+        align-items: center;
+        margin-top: 1.8rem;
+    }
+
+    .toggle-input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        gap: 0.75rem;
+    }
+
+    .toggle-switch {
+        position: relative;
+        width: 50px;
+        height: 26px;
+        background: #e5e7eb;
+        border-radius: 13px;
+        transition: all 0.3s;
+    }
+
+    .toggle-switch::after {
+        content: '';
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: white;
+        top: 3px;
+        left: 3px;
+        transition: all 0.3s;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .toggle-input:checked + .toggle-label .toggle-switch {
+        background: #3b82f6;
+    }
+
+    .toggle-input:checked + .toggle-label .toggle-switch::after {
+        transform: translateX(24px);
+    }
+
+    .toggle-text {
+        font-weight: 500;
+        color: #374151;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .status-toggle {
+            margin-top: 0;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add error highlighting
+    document.querySelectorAll('.invalid-feedback').forEach(errorField => {
+        const inputId = errorField.previousElementSibling.id;
+        const input = document.getElementById(inputId);
+        if (input) input.classList.add('is-invalid');
+    });
+
+    // Fix for toggle switch - ensures it works with form submission
+    document.querySelectorAll('.toggle-input').forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            this.value = this.checked ? 'on' : 'off';
+        });
+    });
+
+    // Focus first field with error or first field
+    const firstError = document.querySelector('.is-invalid');
+    if (firstError) {
+        firstError.focus();
+    } else {
+        document.querySelector('input:not([type="hidden"])')?.focus();
+    }
+});
+</script>
+{% endblock %}

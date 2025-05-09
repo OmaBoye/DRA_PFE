@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Détails de l'Analyse{% endblock %}
+
+{% block breadcrumb_items %}
+<nav aria-label="breadcrumb" class="mb-4">
+  <ol class="breadcrumb bg-light p-3 rounded">
+    <li class="breadcrumb-item">
+      <a href="{% url 'dashboard' %}">Dashboard</a>
+    </li>
+    <li class="breadcrumb-item">
+      <a href="{% url 'analysis:list' %}">Analyses</a>
+    </li>
+    <li class="breadcrumb-item active">Détails #{{ analysis.id }}</li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center bg-white py-3">
+        <h5 class="card-title mb-0">Analyse #{{ analysis.id }}</h5>
+        <div>
+          <span class="badge bg-{{ analysis.get_priority_badge }} me-2">{{ analysis.get_priority_display }}</span>
+          <span class="badge bg-{{ analysis.get_status_badge }}">{{ analysis.get_status_display }}</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="card border-light mb-4">
+              <div class="card-header bg-light py-2">
+                <h6 class="mb-0">Informations Échantillon</h6>
+              </div>
+              <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Code Barre:</span>
+                    <span class="fw-medium">{{ analysis.sample.barcode }}</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Patient:</span>
+                    <span class="fw-medium">{{ analysis.sample.patient.full_name }}</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Type Échantillon:</span>
+                    <span class="fw-medium">{{ analysis.sample.get_sample_type_display }}</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Date Prélèvement:</span>
+                    <span class="fw-medium">{{ analysis.sample.collection_date|date:"d/m/Y H:i" }}</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card border-light">
+              <div class="card-header bg-light py-2">
+                <h6 class="mb-0">Détails Analyse</h6>
+              </div>
+              <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Type Analyse:</span>
+                    <span class="fw-medium">{{ analysis.analysis_type.name }}</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Demandé par:</span>
+                    <span class="fw-medium">{{ analysis.requested_by.get_full_name }}</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Date Demande:</span>
+                    <span class="fw-medium">{{ analysis.created_at|date:"d/m/Y H:i" }}</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Technicien:</span>
+                    <span class="fw-medium">{{ analysis.technician.get_full_name|default:"-" }}</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card border-light mb-4">
+          <div class="card-header bg-light py-2">
+            <h6 class="mb-0">Notes</h6>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-light">
+              {{ analysis.notes|default:"Aucune note."|linebreaks }}
+            </div>
+          </div>
+        </div>
+
+        <div class="card border-light">
+          <div class="card-header bg-light py-2">
+            <h6 class="mb-0">Résultats Associés</h6>
+          </div>
+          <div class="card-body p-0">
+            {% if analysis.result_set.all %}
+            <div class="list-group list-group-flush">
+              {% for result in analysis.result_set.all %}
+              <a href="{% url 'results:detail' result.id %}" class="list-group-item list-group-item-action">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="mb-1">Résultat #{{ result.id }}</h6>
+                    <small class="text-muted">{{ result.created_at|date:"d/m/Y H:i" }}</small>
+                  </div>
+                  <div>
+                    <span class="badge bg-{{ result.get_status_badge }}">{{ result.get_status_display }}</span>
+                  </div>
+                </div>
+              </a>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-warning m-3">
+              <i class="fas fa-exclamation-circle me-2"></i>Aucun résultat associé
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="card-footer bg-white d-flex justify-content-between py-3">
+        <a href="{% url 'analysis:update' analysis.id %}" class="btn btn-primary">
+          <i class="fas fa-edit me-2"></i>Modifier
+        </a>
+        <a href="{% url 'analysis:list' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-2"></i>Retour
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="card mb-4">
+      <div class="card-header bg-white py-3">
+        <h5 class="card-title mb-0">Protocole d'Analyse</h5>
+      </div>
+      <div class="card-body">
+        {% if analysis.analysis_type.protocol %}
+        <div class="alert alert-info">
+          <h6 class="alert-heading">{{ analysis.analysis_type.name }}</h6>
+          <hr>
+          {{ analysis.analysis_type.protocol|linebreaks }}
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+          <i class="fas fa-exclamation-circle me-2"></i>Aucun protocole disponible
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header bg-white py-3">
+        <h5 class="card-title mb-0">Historique</h5>
+      </div>
+      <div class="card-body">
+        {% if analysis.history.all %}
+        <div class="timeline">
+          {% for entry in analysis.history.all|slice:":5" %}
+          <div class="timeline-item">
+            <div class="timeline-point"></div>
+            <div class="timeline-content">
+              <small class="text-muted">{{ entry.history_date|date:"d/m/Y H:i" }}</small>
+              <p class="mb-1">{{ entry.get_history_type_display }} par {{ entry.history_user.get_full_name }}</p>
+              {% if entry.history_change_reason %}
+              <small class="text-muted">Note: {{ entry.history_change_reason }}</small>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+          <i class="fas fa-exclamation-circle me-2"></i>Aucun historique disponible
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
