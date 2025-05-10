@@ -47,11 +47,14 @@ INSTALLED_APPS = [
     'reports',
     'analysis',
 
+
     'crispy_forms',
     'crispy_bootstrap5',
     'django_tables2',
     'django_filters',
     'widget_tweaks',
+    'import_export',
+    'rest_framework',
 
 
 ]
@@ -156,3 +159,11 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
 SESSION_COOKIE_HTTPONLY = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'your-email@gmail.com'
+EMAIL_HOST_PASSWORD = 'your-password'

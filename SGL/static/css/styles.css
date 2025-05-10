@@ -6,19 +6,19 @@
     --danger-color: #ff5252;
     --warning-color: #ffba57;
     --info-color: #16b1ff;
-    --dark-color: #283046;
+    --dark-color: #0f172a; /* Updated to match Corona dark theme */
     --light-color: #f8f9fc;
     --text-color: #6e6b7b;
     --text-muted: #b8b8b8;
     --border-color: rgba(0, 0, 0, 0.05);
+    --sidebar-bg: #0f172a; /* Dark blue background */
+    --sidebar-text: #d0d2d6;
+    --sidebar-active-bg: rgba(27, 85, 226, 0.25);
 
     /* Layout */
     --sidebar-width: 260px;
     --sidebar-collapsed-width: 80px;
     --top-nav-height: 70px;
-    --sidebar-bg: #283046;
-    --sidebar-text: #d0d2d6;
-    --sidebar-active-bg: rgba(27, 85, 226, 0.25);
     --card-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
     --card-radius: 0.5rem;
 }
@@ -42,11 +42,12 @@ body {
     display: flex;
     min-height: 100vh;
 }
-/* ========== Enhanced Sidebar ========== */
+
+/* ========== Enhanced Sidebar (Corona Style) ========== */
 .sidebar {
     width: var(--sidebar-width);
-    background: linear-gradient(180deg, #1a2b50 0%, #0d1a33 100%);
-    color: #e0e0e0;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
     position: fixed;
     height: 100vh;
     z-index: 1000;
@@ -86,18 +87,6 @@ body {
     font-size: 1.25rem;
     margin: 0;
     transition: all 0.3s;
-    background: linear-gradient(to right, #fff 20%, #a0bcf0 40%, #a0bcf0 60%, #fff 80%);
-    background-size: 200% auto;
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: shine 3s linear infinite;
-}
-
-@keyframes shine {
-    to {
-        background-position: 200% center;
-    }
 }
 
 .sidebar-nav {
@@ -296,6 +285,7 @@ body {
         display: block;
     }
 }
+
 /* Sidebar Tooltips */
 .sidebar-tooltip {
     position: absolute;
@@ -332,6 +322,7 @@ body.sidebar-collapsed {
 .sidebar * {
     transition: all 0.3s ease;
 }
+
 /* Main Content Styles */
 .main-content {
     flex: 1;
@@ -883,6 +874,7 @@ body.sidebar-collapsed {
         width: 100% !important;
     }
 }
+
 /* Laboratory Dashboard Styles */
 .lab-card {
     border: none;
@@ -1036,7 +1028,8 @@ body.sidebar-collapsed {
         -webkit-overflow-scrolling: touch;
     }
 }
-/* Add to your styles.css */
+
+/* Dashboard Grid Layout */
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -1115,6 +1108,7 @@ body.sidebar-collapsed {
 .form-group-spaced {
     margin-bottom: 16px;
 }
+
 /* Sample Status Badges */
 .badge-collected { background-color: var(--primary-color); }
 .badge-received { background-color: var(--info-color); }
@@ -1162,7 +1156,8 @@ body.sidebar-collapsed {
         width: 100%;
     }
 }
-/* Add to your styles.css */
+
+/* Form Cards */
 .form-card {
     background: white;
     border-radius: 12px;
@@ -1199,6 +1194,7 @@ body.sidebar-collapsed {
 .form-body {
     padding: 1.5rem;
 }
+
 .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -1219,6 +1215,7 @@ body.sidebar-collapsed {
         grid-column: span 1;
     }
 }
+
 .form-label {
     display: block;
     margin-bottom: 0.5rem;
@@ -1290,6 +1287,7 @@ body.sidebar-collapsed {
     font-weight: 500;
     margin-bottom: 0.5rem;
 }
+
 .form-actions {
     display: flex;
     justify-content: flex-end;
@@ -1317,6 +1315,7 @@ body.sidebar-collapsed {
 .is-invalid ~ .invalid-feedback {
     display: block;
 }
+
 /* Radio and Checkbox */
 .form-check {
     position: relative;
@@ -1360,6 +1359,7 @@ body.sidebar-collapsed {
 .flatpickr-input {
     background-color: #f8f9fa !important;
 }
+
 /* Full-width form container */
 .form-container-full {
     max-width: none;
@@ -1384,6 +1384,7 @@ body.sidebar-collapsed {
 .sidebar-collapsed + .main-content .form-container-full {
     margin-left: var(--sidebar-collapsed-width);
 }
+
 /* Form Switch Toggles */
 .form-switch .form-check-input {
     width: 2.5em;
@@ -1395,6 +1396,7 @@ body.sidebar-collapsed {
 .form-control[type="date"] {
     position: relative;
 }
+
 .form-control[type="date"]::-webkit-calendar-picker-indicator {
     position: absolute;
     right: 0.5rem;

@@ -299,3 +299,83 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+// ==================== Sidebar Functionality ====================
+const sidebar = document.querySelector('.sidebar');
+const sidebarTogglers = document.querySelectorAll('.sidebar-toggle');
+const body = document.body;
+
+// Toggle sidebar state
+function toggleSidebar() {
+    sidebar.classList.toggle('collapsed');
+    body.classList.toggle('sidebar-collapsed');
+    localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+
+    // Update toggle button icon
+    const icons = document.querySelectorAll('.sidebar-toggle i');
+    icons.forEach(icon => {
+        icon.classList.toggle('fa-bars');
+        icon.classList.toggle('fa-chevron-right');
+    });
+}
+
+// Initialize sidebar state
+function initSidebar() {
+    // Check localStorage for collapsed state
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+        sidebar.classList.add('collapsed');
+        body.classList.add('sidebar-collapsed');
+
+        // Set correct icon if collapsed
+        const icons = document.querySelectorAll('.sidebar-toggle i');
+        icons.forEach(icon => {
+            icon.classList.remove('fa-bars');
+            icon.classList.add('fa-chevron-right');
+        });
+    }
+
+    // Add click event to all toggle buttons
+    sidebarTogglers.forEach(toggler => {
+        toggler.addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleSidebar();
+        });
+    });
+
+    // Set active menu item
+    const currentPath = window.location.pathname;
+    document.querySelectorAll('.nav-link').forEach(link => {
+        if (link.getAttribute('href') === currentPath) {
+            link.classList.add('active');
+            if (sidebar.classList.contains('collapsed')) {
+                link.scrollIntoView({ block: 'center' });
+            }
+        }
+    });
+
+    // Add hover tooltips for collapsed state
+    if (window.innerWidth > 768) {
+        const navItems = document.querySelectorAll('.nav-item');
+
+        navItems.forEach(item => {
+            const link = item.querySelector('.nav-link');
+
+            item.addEventListener('mouseenter', () => {
+                if (sidebar.classList.contains('collapsed')) {
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'sidebar-tooltip';
+                    tooltip.textContent = link.querySelector('.nav-text').textContent;
+                    item.appendChild(tooltip);
+
+                    const rect = item.getBoundingClientRect();
+                    tooltip.style.left = `${rect.width + 10}px`;
+                    tooltip.style.top = `${rect.height/2 - tooltip.offsetHeight/2}px`;
+                }
+            });
+
+            item.addEventListener('mouseleave', () => {
+                const tooltip = item.querySelector('.sidebar-tooltip');
+                if (tooltip) tooltip.remove();
+            });
+        });
+    }
+}

@@ -4,6 +4,9 @@ from .models import Report
 from .forms import ReportForm
 from .utils import generate_pdf_report, generate_excel_report
 from django.http import HttpResponse
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from openpyxl import Workbook
 
 
 class ReportListView(ListView):
@@ -50,3 +53,32 @@ class ReportGenerateView(TemplateView):
             return response
 
         return super().get(request, *args, **kwargs)
+
+
+
+
+def export_pdf(request, pk):
+    report = Report.objects.get(pk=pk)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="report_{pk}.pdf"'
+
+    p = canvas.Canvas(response)
+    p.drawString(100, 800, f"Report for {report.patient}")
+    p.showPage()
+    p.save()
+    return response
+
+
+def export_excel(request):
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="reports.xlsx"'
+
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["Patient", "Sample", "Status"])
+
+    for report in Report.objects.all():
+        ws.append([report.patient, report.sample, report.status])
+
+    wb.save(response)
+    return response

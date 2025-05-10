@@ -50,9 +50,15 @@
                 </div>
             </div>
             <div class="card-footer d-flex justify-content-between">
-                <a href="{% url 'patients:update' patient.id %}" class="btn btn-primary btn-action">
-                    <i class="fas fa-edit"></i> Modifier
-                </a>
+                <div>
+                    <input type="file" id="qrUpload" accept="image/*" class="d-none">
+                    <button onclick="document.getElementById('qrUpload').click()" class="btn btn-info btn-action">
+                        <i class="fas fa-qrcode"></i> Scan QR
+                    </button>
+                    <a href="{% url 'patients:update' patient.id %}" class="btn btn-primary btn-action">
+                        <i class="fas fa-edit"></i> Modifier
+                    </a>
+                </div>
                 <a href="{% url 'patients:list' %}" class="btn btn-outline-secondary btn-action">
                     <i class="fas fa-arrow-left"></i> Retour
                 </a>
@@ -88,4 +94,39 @@
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('qrUpload').addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+        scanQR();
+    }
+});
+
+function scanQR() {
+    const fileInput = document.getElementById('qrUpload');
+    const formData = new FormData();
+    formData.append('qr_image', fileInput.files[0]);
+
+    fetch('/patients/scan-qr/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Accept': 'application/json'
+        }
+    }).then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              // Handle successful scan (e.g., redirect or show data)
+              alert('QR code scanné avec succès: ' + data.data);
+          } else {
+              alert('Erreur lors du scan: ' + data.error);
+          }
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          alert('Une erreur est survenue lors du scan.');
+      });
+}
+</script>
 {% endblock %}

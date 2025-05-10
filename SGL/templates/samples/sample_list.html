@@ -9,6 +9,9 @@
             <h5 class="card-title mb-0">Échantillons</h5>
         </div>
         <div>
+            <a href="{% url 'samples:list' %}?format=csv" class="btn btn-info me-2">
+                <i class="fas fa-file-csv me-1"></i> Export CSV
+            </a>
             <a href="{% url 'samples:create' %}" class="btn btn-primary">
                 <i class="fas fa-plus me-1"></i> Nouveau
             </a>
@@ -28,7 +31,6 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Sample rows will be added dynamically -->
                     {% for sample in samples %}
                     <tr>
                         <td>{{ sample.barcode }}</td>
@@ -55,7 +57,9 @@
                         </td>
                     </tr>
                     {% empty %}
-
+                    <tr>
+                        <td colspan="6" class="text-center">Aucun échantillon trouvé</td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -65,7 +69,27 @@
     <div class="card-footer">
         <nav aria-label="Pagination">
             <ul class="pagination justify-content-center mb-0">
-                <!-- Pagination will be added dynamically -->
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                </li>
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
             </ul>
         </nav>
     </div>

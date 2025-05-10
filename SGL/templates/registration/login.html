@@ -1,38 +1,242 @@
 {% extends "base_no_nav.html" %}
 {% load static %}
 
-{% block title %}Connexion{% endblock %}
+{% block title %}Connexion - LabGestion{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #4680ff;
+        --primary-dark: #1a73e8;
+        --error-color: #ff5252;
+        --text-color: #344767;
+        --light-gray: #f8f9fa;
+        --border-color: #d2d6da;
+        --shadow-color: rgba(0, 0, 0, 0.08);
+    }
+
+    body.auth-body-bg {
+        background-color: #f5f7fb;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        margin: 0;
+        padding: 20px;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .login-wrapper {
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .login-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+
+    .login-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        padding: 24px;
+        text-align: center;
+        color: white;
+    }
+
+    .login-header h3 {
+        font-weight: 600;
+        margin: 0 0 4px 0;
+        font-size: 1.5rem;
+    }
+
+    .login-header p {
+        opacity: 0.9;
+        margin: 0;
+        font-size: 0.95rem;
+    }
+
+    .login-body {
+        padding: 24px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: var(--text-color);
+        font-size: 0.95rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.95rem;
+        background-color: var(--light-gray);
+        color: var(--text-color);
+        box-sizing: border-box;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(70, 128, 255, 0.15);
+        background-color: white;
+    }
+
+    .btn-login {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        border: none;
+        color: white;
+        padding: 12px;
+        font-weight: 500;
+        width: 100%;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        margin-top: 8px;
+        transition: background 0.2s;
+    }
+
+    .btn-login:hover {
+        background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
+    }
+
+    .login-footer {
+        text-align: center;
+        padding: 16px;
+        color: #6e6b7b;
+        font-size: 0.875rem;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .input-group {
+        position: relative;
+    }
+
+    .input-group i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6e6b7b;
+    }
+
+    .input-group input {
+        padding-left: 40px;
+    }
+
+    .alert-danger {
+        background-color: rgba(var(--error-color), 0.1);
+        border-left: 4px solid var(--error-color);
+        color: var(--error-color);
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .remember-forgot {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+    }
+
+    .form-check-input {
+        margin-right: 8px;
+        cursor: pointer;
+    }
+
+    .form-check-label {
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: var(--text-color);
+    }
+
+    .forgot-link {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: color 0.2s;
+    }
+
+    .forgot-link:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-5">
-        <div class="card shadow-lg border-0 rounded-lg mt-5">
-            <div class="card-header text-center bg-primary text-white">
-                <h3 class="font-weight-light my-4">Connexion à SGL</h3>
-            </div>
-            <div class="card-body">
-                {% if form.errors %}
-                <div class="alert alert-danger">
-                    Votre nom d'utilisateur et votre mot de passe ne correspondent pas. Veuillez réessayer.
-                </div>
-                {% endif %}
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="login-header">
+            <h3>Connexion à LabGestion</h3>
+            <p>Système de gestion de laboratoire</p>
+        </div>
 
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="form-floating mb-3">
-                        <input type="text" class="form-control" id="id_username" name="username" placeholder="Nom d'utilisateur" required>
-                        <label for="id_username">Nom d'utilisateur</label>
-                    </div>
-                    <div class="form-floating mb-3">
-                        <input type="password" class="form-control" id="id_password" name="password" placeholder="Mot de passe" required>
-                        <label for="id_password">Mot de passe</label>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-center mt-4 mb-0">
-                        <button type="submit" class="btn btn-primary">Connexion</button>
-                    </div>
-                    <input type="hidden" name="next" value="{{ next }}">
-                </form>
+        <div class="login-body">
+            {% if form.errors %}
+            <div class="alert-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>Votre nom d'utilisateur et votre mot de passe ne correspondent pas.</span>
             </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="id_username" class="form-label">Nom d'utilisateur</label>
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" class="form-control" id="id_username" name="username"
+                               placeholder="Entrez votre nom d'utilisateur" required autofocus>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_password" class="form-label">Mot de passe</label>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" class="form-control" id="id_password" name="password"
+                               placeholder="Entrez votre mot de passe" required>
+                    </div>
+                </div>
+
+                <div class="remember-forgot">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="remember-me">
+                        <label class="form-check-label" for="remember-me">Se souvenir de moi</label>
+                    </div>
+                    <a href="#" class="forgot-link">Mot de passe oublié ?</a>
+                </div>
+
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt me-2"></i> Connexion
+                </button>
+
+                <input type="hidden" name="next" value="{{ next }}">
+            </form>
+        </div>
+
+        <div class="login-footer">
+            © {% now "Y" %} LabGestion - Version 1.0.0
         </div>
     </div>
 </div>
