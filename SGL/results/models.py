@@ -1,9 +1,14 @@
+from auditlog.models import AuditlogHistoryField
 from django.db import models
 from core.models import BaseModel
 from samples.models import Sample
 from patients.models import Patient
+from auditlog.registry import auditlog
+
 
 class Result(BaseModel):
+    history = AuditlogHistoryField()
+
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('completed', 'Completed'),
@@ -27,3 +32,5 @@ class Result(BaseModel):
 
     class Meta:
         ordering = ['-test_date']
+
+auditlog.register(Result)

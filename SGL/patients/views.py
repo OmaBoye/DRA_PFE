@@ -1,11 +1,15 @@
 from django.shortcuts import render, get_object_or_404
+from django.views import View
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from .models import Patient
 from .forms import PatientForm
 from django.http import JsonResponse
 from pyzbar.pyzbar import decode
 from PIL import Image
+from django.views.generic import TemplateView
+from django.http import JsonResponse
+from results.models import Result
 import cv2
 import numpy as np
 
@@ -52,12 +56,36 @@ def scan_qr(request):
                     return JsonResponse({
                         'success': True,
                         'data': {
-                            'name': patient.full_name,
+                            'name': f"{patient.first_name} {patient.last_name}",
                             'dob': patient.date_of_birth.strftime('%d/%m/%Y'),
-                            'id': patient.id
+                            'id': patient.id,
+                            'results_url': reverse('patients:patient_results_api', kwargs={'pk': patient.id})
                         }
                     })
                 except Patient.DoesNotExist:
                     return JsonResponse({'success': False, 'error': 'Patient not found'}, status=404)
         return JsonResponse({'success': False, 'error': 'No QR detected or invalid format'}, status=400)
     return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+
+
+class PatientResultsPortalView(TemplateView):
+    template_name = 'patients/patient_results_portal.html'
+
+
+class PatientResultsAPIView(View):
+    def get(self, request, pk):
+        try:
+            patient = Patient.objects.get(pk=pk)
+            results = Result.objects.filter(sample__patient=patient).select_related('sample')
+
+            data = {
+                'results': [{
+                    'id': r.id,
+                    'test_name': r.sample.analysis_type.name,
+                    'date': r.test_date.strftime('%d/%m/%Y'),
+                    'status': r.status
+                } for r in results]
+            }
+            return JsonResponse(data)
+        except Patient.DoesNotExist:
+            return JsonResponse({'error': 'Patient not found'}, status=404)

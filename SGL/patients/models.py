@@ -4,9 +4,13 @@ from core.models import BaseModel
 import qrcode
 from io import BytesIO
 from django.core.files import File
+from auditlog.registry import auditlog
+from auditlog.models import AuditlogHistoryField
 
 
 class Patient(BaseModel):
+    history = AuditlogHistoryField()  # Add this line
+
     GENDER_CHOICES = [
         ('M', 'Male'),
         ('F', 'Female'),
@@ -47,3 +51,6 @@ class Patient(BaseModel):
         self.qr_code.save(f'qr_{self.id}.png', File(buffer), save=False)
 
         super().save(*args, **kwargs)
+
+
+auditlog.register(Patient)

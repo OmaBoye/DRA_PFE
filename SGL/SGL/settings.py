@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
+from celery.schedules import crontab
 from django.urls import reverse_lazy
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -55,6 +56,10 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'import_export',
     'rest_framework',
+    'auditlog',
+    'django_pandas',
+    'channels',
+
 
 
 ]
@@ -67,6 +72,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'auditlog.middleware.AuditlogMiddleware',
 ]
 
 ROOT_URLCONF = 'SGL.urls'
@@ -167,3 +173,32 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'your-email@gmail.com'
 EMAIL_HOST_PASSWORD = 'your-password'
+
+CELERY_BEAT_SCHEDULE = {
+    'cleanup_old_records': {
+        'task': 'core.tasks.cleanup_old_records',
+        'schedule': crontab(day_of_week=1, hour=0),  # Every Monday at midnight
+    },
+}
+
+PLOTLY_COMPONENTS = [
+    'dash_core_components',
+    'dash_html_components',
+    'dash_renderer',
+    'dpd_components'
+]
+
+HL7_TIMESTAMP_FORMAT = '%Y%m%d%H%M%S'  # HL7 format: 20240207123045
+
+# FHIR/HL7 Configuration
+HL7_OID = "1.2.3.4.5"  # Your organization's OID
+FHIR_SERVER_URL = "https://hapi.fhir.org/baseR4"  # Test server
+ASGI_APPLICATION = 'SGL.asgi.application'
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}

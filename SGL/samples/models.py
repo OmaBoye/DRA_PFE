@@ -1,9 +1,21 @@
-from django.db import models
+from datetime import timezone, timedelta
 
-# Create your models here.
 from django.db import models
 from core.models import BaseModel
 from patients.models import Patient
+
+
+class SampleQuerySet(models.QuerySet):
+    def last_30_days(self):
+        return self.filter(
+            collection_date__gte=timezone.now() - timedelta(days=30)
+        )
+
+    def last_90_days(self):
+        return self.filter(
+            collection_date__gte=timezone.now() - timedelta(days=90)
+        )
+
 
 class SampleType(models.Model):
     name = models.CharField(max_length=100)
@@ -14,6 +26,8 @@ class SampleType(models.Model):
         return self.name
 
 class Sample(BaseModel):
+    objects = SampleQuerySet.as_manager()
+
     STATUS_CHOICES = [
         ('collected', 'Collected'),
         ('received', 'Received in Lab'),
@@ -36,3 +50,5 @@ class Sample(BaseModel):
 
     class Meta:
         ordering = ['-collection_date']
+
+

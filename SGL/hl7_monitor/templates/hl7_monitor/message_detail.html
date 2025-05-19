@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <h2>HL7 Message Detail</h2>
+  
+  <div class="card mb-4">
+    <div class="card-header">
+      <h4>{{ object.get_message_type_display }} ({{ object.timestamp }})</h4>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <h5>Metadata</h5>
+          <table class="table">
+            <tr><th>Status:</th><td>{{ object.get_status_display }}</td></tr>
+            <tr><th>Processing Time:</th><td>{{ object.processing_time|floatformat:3 }}s</td></tr>
+          </table>
+        </div>
+      </div>
+      
+      <h5>Raw Message</h5>
+      <div class="bg-light p-3 rounded">
+        <code>{{ raw_hl7|safe }}</code>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

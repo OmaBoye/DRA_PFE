@@ -4,6 +4,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DetailView, D
 from django.urls import reverse_lazy
 from .models import User, UserActivity
 from .forms import CustomUserCreationForm, CustomUserChangeForm
+from django.contrib.auth.mixins import UserPassesTestMixin
 
 class UserListView(LoginRequiredMixin, ListView):
     model = User
@@ -11,6 +12,8 @@ class UserListView(LoginRequiredMixin, ListView):
     context_object_name = 'users'
     paginate_by = 20
 
+    def test_func(self):
+        return self.request.user.is_superuser or self.request.user.role == 'admin'
 class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = User
     form_class = CustomUserCreationForm
