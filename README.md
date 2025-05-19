@@ -1,2 +1,3 @@
-ADMIN LOG IN : ad 
+ADMIN LOG IN 
+User : ad 
 Password : 5
