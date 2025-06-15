@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Détails du Rapport{% endblock %}
+
+{% block breadcrumb_items %}
+<li class="breadcrumb-item"><a href="{% url 'reports:list' %}">Rapports</a></li>
+<li class="breadcrumb-item active">Détails</li>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Rapport #{{ report.id }}</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><strong>Type:</strong> {{ report.get_report_type_display }}</li>
+                            <li><strong>Format:</strong> {{ report.get_format_display }}</li>
+                            <li><strong>Généré par:</strong> {{ report.generated_by.get_full_name|default:report.generated_by.username }}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li><strong>Période:</strong> {{ report.start_date|date:"d/m/Y" }} - {{ report.end_date|date:"d/m/Y" }}</li>
+                            <li><strong>Date Génération:</strong> {{ report.generated_at|date:"d/m/Y H:i" }}</li>
+                            <li><strong>Taille:</strong> {{ report.file.size|filesizeformat }}</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h5>Paramètres</h5>
+                    <div class="border p-3 bg-light">
+                        <pre>{{ report.parameters_json|pretty_json }}</pre>
+                    </div>
+                </div>
+
+                {% if report.format == 'html' %}
+                <div class="mt-4">
+                    <h5>Contenu</h5>
+                    <div class="border p-3 bg-light">
+                        <iframe src="{{ report.file.url }}" style="width: 100%; height: 500px; border: none;"></iframe>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <a href="{{ report.get_download_url }}" class="btn btn-primary">
+                            <i class="bi bi-download"></i> Télécharger
+                        </a>
+                        <a href="{% url 'reports:export_pdf' report.pk %}" class="btn btn-danger">
+                            <i class="bi bi-file-pdf"></i> PDF
+                        </a>
+                        <a href="{% url 'reports:export_excel' report.pk %}" class="btn btn-success">
+                            <i class="bi bi-file-excel"></i> Excel
+                        </a>
+                    </div>
+                    <a href="{% url 'reports:list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Retour
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Statistiques</h5>
+            </div>
+            <div class="card-body">
+                {% if report.metadata.analyses_count %}
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Analyses incluses
+                        <span class="badge bg-primary rounded-pill">{{ report.metadata.analyses_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Patients concernés
+                        <span class="badge bg-primary rounded-pill">{{ report.metadata.patients_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Échantillons traités
+                        <span class="badge bg-primary rounded-pill">{{ report.metadata.samples_count }}</span>
+                    </li>
+                </ul>
+                {% else %}
+                <p class="text-muted">Aucune statistique disponible</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

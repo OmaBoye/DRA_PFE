@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="JavaScriptLibraryMappings">
+    <file url="file://$PROJECT_DIR$" libraries="{@fortawesome/fontawesome-free, @mdi/font, @ttskch/select2-bootstrap4-theme, apexcharts, app, bootstrap-icons, chart.js, flatpickr, font-awesome, fr, headroom, jquery, jquery-3.6.0, popper.js, select2}" />
+  </component>
+</project>

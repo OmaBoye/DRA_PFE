@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bill - {{ sample.barcode }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .patient-info, .sample-info { margin-bottom: 15px; }
+        .qr-code { text-align: center; margin: 20px 0; }
+        .barcode { text-align: center; font-family: 'Libre Barcode 128', cursive; font-size: 24px; }
+        .footer { margin-top: 30px; text-align: right; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Laboratory Invoice</h1>
+    </div>
+
+    <div class="patient-info">
+        <h3>Patient Information</h3>
+        <p>Name: {{ sample.patient.full_name }}</p>
+        <p>DOB: {{ sample.patient.date_of_birth|date:"d/m/Y" }}</p>
+    </div>
+
+    <div class="sample-info">
+        <h3>Sample Information</h3>
+        <p>Barcode: {{ sample.barcode }}</p>
+        <p>Collection Date: {{ sample.collection_date|date:"d/m/Y H:i" }}</p>
+        <p>Sample Types: {% for st in sample.sample_type.all %}{{ st.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    </div>
+
+    <div class="qr-code">
+        <img src="{{ sample.patient.qr_code.url }}" alt="Patient QR Code" width="150">
+    </div>
+
+    <div class="barcode">
+        *{{ sample.barcode }}*
+    </div>
+
+    <div class="footer">
+        <p>Amount: ${{ bill.amount }}</p>
+        <p>Issued Date: {{ bill.issued_date|date:"d/m/Y H:i" }}</p>
+    </div>
+</body>
+</html>

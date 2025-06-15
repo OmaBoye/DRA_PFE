@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid">
+  <h2>HL7 Message Dashboard</h2>
+  
+  <!-- Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <h5>24h Messages</h5>
+          <h3>{{ message_stats|length }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-danger text-white">
+        <div class="card-body">
+          <h5>24h Errors</h5>
+          <h3>{{ error_count }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message Table -->
+  <div class="card">
+    <div class="card-header">
+      <h4>Recent Messages</h4>
+    </div>
+    <div class="card-body">
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Type</th>
+            <th>Direction</th>
+            <th>Status</th>
+            <th>Processing Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for msg in messages %}
+          <tr>
+            <td><a href="{% url 'hl7-monitor:detail' msg.pk %}">{{ msg.timestamp }}</a></td>
+            <td>{{ msg.get_message_type_display }}</td>
+            <td>{{ msg.get_direction_display }}</td>
+            <td class="text-{% if msg.status == 'ERROR' %}danger{% else %}success{% endif %}">
+              {{ msg.get_status_display }}
+            </td>
+            <td>{{ msg.processing_time|floatformat:3 }}s</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

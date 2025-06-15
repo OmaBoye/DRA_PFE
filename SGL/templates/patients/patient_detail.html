@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Détails du Patient{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card enhanced-card">
+            <div class="card-header">
+                <h5>Informations du Patient</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-group enhanced-list-group">
+                            <li class="list-group-item">
+                                <strong>Nom Complet:</strong> {{ patient.full_name }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Date de Naissance:</strong> {{ patient.date_of_birth|date:"d/m/Y" }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Sexe:</strong> {{ patient.get_gender_display }}
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-group enhanced-list-group">
+                            <li class="list-group-item">
+                                <strong>Téléphone:</strong> {{ patient.phone_number|default:"-" }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Email:</strong> {{ patient.email|default:"-" }}
+                            </li>
+                            <li class="list-group-item">
+                                <strong>Adresse:</strong> {{ patient.address|default:"-" }}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h5 class="mb-3">Historique Médical</h5>
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            {{ patient.medical_history|default:"Aucun historique médical enregistré."|linebreaks }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h5 class="mb-3">Change History</h5>
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <ul class="list-group enhanced-list-group">
+                                {% for entry in patient.history.all %}
+                                <li class="list-group-item">
+                                    {{ entry.timestamp }}: {{ entry.get_action_display }} by {% firstof entry.actor.get_full_name entry.actor.username %}
+                                </li>
+                                {% empty %}
+                                <li class="list-group-item">No history found</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+                <div>
+                    <input type="file" id="qrUpload" accept="image/*" class="d-none">
+                    <button onclick="document.getElementById('qrUpload').click()" class="btn btn-info btn-action">
+                        <i class="fas fa-qrcode"></i> Scan QR
+                    </button>
+                    <a href="{% url 'patients:results_portal' %}" class="btn btn-info">
+                        <i class="fas fa-qrcode"></i> Portail Résultats
+                    </a>
+                    <a href="{% url 'patients:update' patient.id %}" class="btn btn-primary btn-action">
+                        <i class="fas fa-edit"></i> Modifier
+                    </a>
+                </div>
+                <a href="{% url 'patients:list' %}" class="btn btn-outline-secondary btn-action">
+                    <i class="fas fa-arrow-left"></i> Retour
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card enhanced-card">
+            <div class="card-header">
+                <h5>Échantillons Récents</h5>
+            </div>
+            <div class="card-body">
+                {% if patient.sample_set.all %}
+                <div class="list-group enhanced-list-group">
+                    {% for sample in patient.sample_set.all|slice:":5" %}
+                    <a href="{% url 'samples:detail' sample.id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ sample.get_sample_type_display }}</h6>
+                            <small>{{ sample.collection_date|date:"d/m/Y" }}</small>
+                        </div>
+                        <p class="mb-1">Code: {{ sample.barcode }}</p>
+                        <small>Statut: <span class="badge bg-{{ sample.get_status_badge }}">{{ sample.get_status_display }}</span></small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-vial"></i>
+                    <p>Aucun échantillon trouvé</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('qrUpload').addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+        scanQR();
+    }
+});
+
+function scanQR() {
+    const fileInput = document.getElementById('qrUpload');
+    const formData = new FormData();
+    formData.append('qr_image', fileInput.files[0]);
+
+    fetch('/patients/scan-qr/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Accept': 'application/json'
+        }
+    }).then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              // Handle successful scan (e.g., redirect or show data)
+              alert('QR code scanné avec succès: ' + data.data);
+          } else {
+              alert('Erreur lors du scan: ' + data.error);
+          }
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          alert('Une erreur est survenue lors du scan.');
+      });
+}
+</script>
+{% endblock %}
