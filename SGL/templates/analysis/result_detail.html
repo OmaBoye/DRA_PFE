@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="result-container">
+  <h2>{{ result.analysis.analysis_type.name }} Results</h2>
+  
+  <div class="result-actions">
+    <a href="{% url 'analysis:edit_result' result.pk %}" class="btn">
+      <i class="fas fa-edit"></i> Edit
+    </a>
+    <a href="{% url 'analysis:print_result' result.pk %}" class="btn">
+      <i class="fas fa-print"></i> PDF
+    </a>
+  </div>
+
+  <div class="result-data">
+    {% for category, tests in result.formatted_data.items %}
+    <h3>{{ category|title }}</h3>
+    <table class="table">
+      {% for test, data in tests.items %}
+      <tr>
+        <td>{{ test }}</td>
+        <td>{{ data.value }} {{ data.unit }}</td>
+        <td>{{ data.range }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

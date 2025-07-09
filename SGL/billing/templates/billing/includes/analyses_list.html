@@ -1,0 +1,42 @@
+{% if analyses %}
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Available Analyses for Billing</h5>
+    </div>
+    <div class="card-body">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Select</th>
+                    <th>Test</th>
+                    <th>Sample ID</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for analysis in analyses %}
+                <tr>
+                    <td>
+                        <input type="checkbox" 
+                               name="analyses" 
+                               value="{{ analysis.id }}"
+                               class="form-check-input">
+                    </td>
+                    <td>{{ analysis.analysis_type.name }}</td>
+                    <td>{{ analysis.sample.barcode }}</td>
+                    <td>{{ analysis.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        <span class="badge bg-{{ analysis.status|yesno:'success,warning' }}">
+                            {{ analysis.get_status_display }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">No unbilled analyses found for this patient.</div>
+{% endif %}

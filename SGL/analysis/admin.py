@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import AnalysisType, Analysis
+from django.utils.html import format_html
+
+from .models import AnalysisType, Analysis, AnalysisResult
+
 
 @admin.register(AnalysisType)
 class AnalysisTypeAdmin(admin.ModelAdmin):
@@ -9,8 +12,18 @@ class AnalysisTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Analysis)
 class AnalysisAdmin(admin.ModelAdmin):
-    list_display = ('sample', 'analysis_type', 'status', 'started_at', 'technician')
-    list_filter = ('status', 'analysis_type')
+    list_display = ('sample', 'status', 'started_at', 'technician')
+    list_filter = ('status',)
     search_fields = ('sample__barcode', 'technician')
     raw_id_fields = ('sample',)
     date_hierarchy = 'created_at'
+
+
+@admin.register(AnalysisResult)
+class AnalysisResultAdmin(admin.ModelAdmin):
+    list_display = ('analysis', 'is_auto_generated', 'is_approved', 'created_at')
+    list_filter = ('is_auto_generated', 'is_approved')
+    readonly_fields = ('raw_data_preview',)
+
+    def raw_data_preview(self, obj):
+        return format_html('<pre>{}</pre>', json.dumps(obj.raw_data, indent=2))

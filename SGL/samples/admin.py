@@ -1,4 +1,7 @@
 from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
+
 from .models import SampleType, Sample, Bill
 
 
@@ -8,9 +11,11 @@ class SampleTypeAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
+
+
 @admin.register(Sample)
 class SampleAdmin(admin.ModelAdmin):
-    list_display = ('barcode', 'patient', 'display_sample_types', 'status', 'collection_date')
+    list_display = ('barcode', 'patient', 'display_sample_types', 'status', 'collection_date','view_analyses')
     list_filter = ('status',)
     search_fields = ('barcode', 'patient__first_name', 'patient__last_name')
     raw_id_fields = ('patient',)
@@ -22,6 +27,9 @@ class SampleAdmin(admin.ModelAdmin):
         return ", ".join([st.name for st in obj.sample_type.all()])
 
     display_sample_types.short_description = 'Sample Types'
+    def view_analyses(self, obj):
+        url = reverse('admin:analysis_analysis_changelist') + f'?sample__id={obj.id}'
+        return format_html('<a href="{}">Analyses</a>', url)
 
 @admin.register(Bill)
 class BillAdmin(admin.ModelAdmin):

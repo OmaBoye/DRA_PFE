@@ -1,98 +1,398 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Gestion des Échantillons{% endblock %}
 
 {% block content %}
-<div class="card lab-card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <div>
-            <h5 class="card-title mb-0">Échantillons</h5>
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center bg-white">
+            <h4 class="mb-0">
+                <i class="fas fa-vials me-2"></i>Registre des Échantillons
+            </h4>
+            <div>
+                <div class="btn-group me-2">
+                    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="fas fa-download me-1"></i> Exporter
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="?export=csv{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">CSV</a></li>
+                        <li><a class="dropdown-item" href="?export=xlsx{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">Excel</a></li>
+                    </ul>
+                </div>
+                <a href="{% url 'samples:create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i> Nouvel Échantillon
+                </a>
+            </div>
         </div>
-        <div>
-            <a href="{% url 'samples:list' %}?format=csv" class="btn btn-danger me-2">
-                <i class="fas fa-file-csv me-1"></i> Export CSV
-            </a>
-            <a href="{% url 'samples:create' %}" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i> Nouveau
-            </a>
-        </div>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead class="bg-light">
-                    <tr>
-                        <th>Code</th>
-                        <th>Patient</th>
-                        <th>Type</th>
-                        <th>Date</th>
-                        <th>Statut</th>
-                        <th class="text-end">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for sample in samples %}
-                    <tr>
-                        <td>{{ sample.barcode }}</td>
-                        <td>{{ sample.patient }}</td>
-                        <td>{{ sample.sample_type.all|join:", " }}</td>
-                        <td>{{ sample.collection_date|date:"d/m/Y" }}</td>
-                        <td>
-                            <span class="badge bg-{{ sample.get_status_badge }}">
-                                {{ sample.get_status_display }}
-                            </span>
-                        </td>
-                        <td class="text-end">
-                            <div class="btn-group">
-                                <a href="{% url 'samples:detail' sample.id %}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{% url 'samples:update' sample.id %}" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <a href="{% url 'samples:delete' sample.id %}" class="btn btn-sm btn-outline-danger">
-                                    <i class="fas fa-trash"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center">Aucun échantillon trouvé</td>
-                    </tr>
+
+        <div class="card-body">
+            <form id="bulk-form" method="post" action="{% url 'samples:bulk_action' %}">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <input type="text" name="search" class="form-control" placeholder="Rechercher..."
+                                   value="{{ request.GET.search }}">
+                        </div>
+                        <div class="col-md-3">
+                            <select name="status" class="form-select">
+                                <option value="">Tous les statuts</option>
+                                {% for value, label in status_choices %}
+                                <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="date" name="date" class="form-control"
+                                   value="{{ request.GET.date }}">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-filter me-1"></i> Filtrer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mb-3">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAll()">
+                            <i class="fas fa-check-square me-1"></i> Tout sélectionner
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAll()">
+                            <i class="far fa-square me-1"></i> Tout désélectionner
+                        </button>
+                    </div>
+                    <div class="btn-group">
+                        <select name="bulk-action" class="form-select form-select-sm" style="width: auto;">
+                            <option value="">Actions groupées...</option>
+                            <option value="print_qr">Imprimer les QR codes</option>
+                            <option value="change_status:processing">Marquer comme "En traitement"</option>
+                            <option value="change_status:analyzed">Marquer comme "Analysé"</option>
+                            <option value="add_to_new_batch">Ajouter à un nouveau lot</option>
+                            <option value="add_to_existing_batch">Ajouter à un lot existant</option>
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="fas fa-play me-1"></i> Exécuter
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="40">
+                                    <input type="checkbox" id="select-all" onclick="toggleSelectAll(this)">
+                                </th>
+                                <th>Code-barres</th>
+                                <th>Patient</th>
+                                <th>Type</th>
+                                <th>Date de prélèvement</th>
+                                <th>Statut</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sample in samples %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="sample_ids" value="{{ sample.id }}" class="sample-checkbox">
+                                </td>
+                                <td>
+                                    <a href="{% url 'samples:detail' sample.id %}">
+                                        {{ sample.barcode }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="{% url 'patients:detail' sample.patient.id %}">
+                                        {{ sample.patient.full_name }}
+                                    </a>
+                                </td>
+                                <td>{{ sample.get_sample_types_display }}</td>
+                                <td>{{ sample.collection_date|date:"d/m/Y" }}</td>
+                                <td>
+                                    <span class="badge bg{% if sample.status == 'collected' %}bg-light text-dark border border-secondary{% elif sample.status == 'processing' %}bg-warning text-dark{% else %}bg-success text-white{% endif %} p-2">
+                                        {{ sample.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <a href="{% url 'samples:detail' sample.id %}"
+                                           class="btn btn-sm btn-outline-primary"
+                                           title="Voir">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if sample.qr_code %}
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                                onclick="printQR('{{ sample.qr_code.url }}', '{{ sample.barcode }}')"
+                                                title="Imprimer QR Code">
+                                            <i class="fas fa-qrcode"></i>
+                                        </button>
+                                        {% endif %}
+                                        <a href="{% url 'samples:update' sample.id %}"
+                                           class="btn btn-sm btn-outline-warning"
+                                           title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <i class="fas fa-vial fa-2x text-muted mb-3"></i>
+                                    <p class="text-muted">Aucun échantillon trouvé</p>
+                                    <a href="{% url 'samples:list' %}" class="btn btn-sm btn-outline-primary">
+                                        Réinitialiser les filtres
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+
+            {% if is_paginated %}
+            <nav aria-label="Pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Précédent">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
                     {% endfor %}
-                </tbody>
-            </table>
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Suivant">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
         </div>
     </div>
-    {% if is_paginated %}
-    <div class="card-footer">
-        <nav aria-label="Pagination">
-            <ul class="pagination justify-content-center mb-0">
-                {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
-                {% endif %}
-
-                {% for num in page_obj.paginator.page_range %}
-                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                </li>
-                {% endfor %}
-
-                {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-                {% endif %}
-            </ul>
-        </nav>
-    </div>
-    {% endif %}
 </div>
+
+<!-- New Batch Modal -->
+<div class="modal fade" id="newBatchModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Créer un nouveau lot</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'samples:batch_create' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <input type="hidden" name="sample_ids" id="newBatchSampleIds">
+          <div class="mb-3">
+            <label class="form-label">Nom du lot</label>
+            <input type="text" class="form-control" name="name" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Créer le lot</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Existing Batch Modal -->
+<div class="modal fade" id="existingBatchModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Ajouter à un lot existant</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'samples:bulk_action' %}">
+        {% csrf_token %}
+        <input type="hidden" name="sample_ids" id="existingBatchSampleIds">
+        <input type="hidden" name="bulk-action" value="add_to_existing_batch">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Sélectionner un lot</label>
+            <select class="form-select" name="batch_id" required>
+              {% for batch in batches %}
+              <option value="{{ batch.id }}">{{ batch.name }} ({{ batch.samples.count }} échantillons)</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Ajouter au lot</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Gestion des sélections
+function toggleSelectAll(source) {
+    const checkboxes = document.querySelectorAll('.sample-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+    });
+}
+
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.sample-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    document.getElementById('select-all').checked = true;
+}
+
+function deselectAll() {
+    const checkboxes = document.querySelectorAll('.sample-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.getElementById('select-all').checked = false;
+}
+
+// Impression QR Code
+function printQR(qrUrl, barcode) {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Échantillon ${barcode} - QR Code</title>
+                <style>
+                    body { text-align: center; padding: 20px; }
+                    img { max-width: 300px; height: auto; margin: 20px 0; }
+                    .info { margin-top: 15px; font-family: Arial; }
+                    .info p { margin: 5px 0; }
+                </style>
+            </head>
+            <body>
+                <h2>Échantillon ${barcode}</h2>
+                <img src="${qrUrl}">
+                <script>window.print();<\/script>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+// Soumission du formulaire groupé
+document.getElementById('bulk-form').addEventListener('submit', function(e) {
+    const action = this.elements['bulk-action'].value;
+    if (!action) {
+        e.preventDefault();
+        return;
+    }
+
+    const checked = document.querySelectorAll('.sample-checkbox:checked');
+    if (checked.length === 0) {
+        e.preventDefault();
+        alert('Veuillez sélectionner au moins un échantillon');
+        return;
+    }
+
+    const sampleIds = Array.from(checked).map(cb => cb.value).join(',');
+
+    if (action === 'print_qr') {
+        e.preventDefault();
+        const qrUrls = [];
+        checked.forEach(checkbox => {
+            const row = checkbox.closest('tr');
+            const qrBtn = row.querySelector('button[onclick^="printQR"]');
+            if (qrBtn) {
+                const match = qrBtn.getAttribute('onclick').match(/printQR\('([^']+)'/);
+                if (match) qrUrls.push(match[1]);
+            }
+        });
+
+        if (qrUrls.length > 0) {
+            printAllQRs(qrUrls);
+        } else {
+            alert('Aucun QR code disponible pour les échantillons sélectionnés');
+        }
+    }
+    else if (action === 'add_to_new_batch') {
+        e.preventDefault();
+        document.getElementById('newBatchSampleIds').value = sampleIds;
+        new bootstrap.Modal(document.getElementById('newBatchModal')).show();
+    }
+    else if (action === 'add_to_existing_batch') {
+        e.preventDefault();
+        document.getElementById('existingBatchSampleIds').value = sampleIds;
+        new bootstrap.Modal(document.getElementById('existingBatchModal')).show();
+    }
+});
+
+function printAllQRs(qrUrls) {
+    const printWindow = window.open('', '_blank');
+    let content = `
+        <html>
+            <head>
+                <title>QR Codes des Échantillons</title>
+                <style>
+                    body { padding: 20px; }
+                    .qr-container {
+                        display: inline-block;
+                        margin: 15px;
+                        text-align: center;
+                        page-break-inside: avoid;
+                    }
+                    img { max-width: 200px; height: auto; }
+                    @media print {
+                        .qr-container {
+                            margin: 10mm;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <h2 style="text-align:center">QR Codes des Échantillons</h2>
+                <div style="text-align:center">
+    `;
+
+    qrUrls.forEach(url => {
+        content += `
+            <div class="qr-container">
+                <img src="${url}">
+            </div>
+        `;
+    });
+
+    content += `
+                </div>
+                <script>window.print();<\/script>
+            </body>
+        </html>
+    `;
+
+    printWindow.document.write(content);
+    printWindow.document.close();
+}
+</script>
 {% endblock %}

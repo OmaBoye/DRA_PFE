@@ -53,16 +53,15 @@
             <td>{{ result.analysis.sample.patient.full_name }}</td>
             <td>{{ result.created_at|date:"d/m/Y" }}</td>
             <td>
-              <span class="badge bg-{{ result.get_status_badge }}">
+              <span class="badge {% if result.status == 'pending' %}bg-light text-dark border border-secondary{% elif result.status == 'processing' %}bg-warning text-dark{% else %}bg-primary text-white{% endif %} p-2">
                 {{ result.get_status_display }}
               </span>
             </td>
             <td>
-              {% if result.is_validated %}
-              <span class="badge bg-success">Oui</span>
-              {% else %}
-              <span class="badge bg-warning">Non</span>
-              {% endif %}
+              <span class="badge {% if result.is_validated %} bg-success text-white
+              {% else %}bg-light text-dark border border-secondary{% endif %} p-2">
+              {% if result.is_validated %}oui{% else %}Non{% endif %}
+              </span>
             </td>
             <td class="text-end">
               <div class="btn-group btn-group-sm">

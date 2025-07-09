@@ -1,0 +1,22 @@
+<tr>
+    <td>{{ bill.id }}</td>
+    <td>
+        <a href="{% url 'patients:detail' bill.patient.id %}">
+            {{ bill.patient.full_name }}
+        </a>
+    </td>
+    <td>${{ bill.amount }}</td>
+    <td>{{ bill.issued_date|date:"M d, Y" }}</td>
+    <td>
+        <span class="badge bg-{% if bill.status == 'paid' %}success{% else %}warning{% endif %}">
+            {{ bill.get_status_display }}
+        </span>
+    </td>
+    <td class="text-end">
+        <div class="btn-group">
+            <a href="{% url 'billing:bill_detail' bill.id %}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-eye"></i>
+            </a>
+        </div>
+    </td>
+</tr>

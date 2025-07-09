@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Transfer Sample Custody{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card">
+    <div class="card-header">
+      <h4>Transfer Custody of {{ sample.barcode }}</h4>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="d-flex justify-content-between mt-4">
+          <a href="{% url 'samples:detail' sample.pk %}" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">Transfer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

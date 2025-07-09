@@ -1,8 +1,9 @@
 from django import forms
 from django.utils import timezone
-from .models import Sample, SampleType
+from .models import Sample, SampleType, CustodyLog
 from patients.models import Patient
-
+from django import forms
+from .models import Batch
 
 class SampleForm(forms.ModelForm):
     # Custom fields
@@ -106,3 +107,46 @@ class SampleForm(forms.ModelForm):
             self.save_m2m()
 
         return sample
+
+
+#custody add
+class CustodyTransferForm(forms.ModelForm):
+    class Meta:
+        model = CustodyLog
+        fields = ['to_technician', 'notes']
+
+class BatchSampleForm(forms.Form):
+    samples = forms.ModelMultipleChoiceField(
+        queryset=Sample.objects.filter(status='collected'),
+        widget=forms.CheckboxSelectMultiple
+    )
+
+# forms.py
+class RejectSampleForm(forms.ModelForm):
+    class Meta:
+        model = Sample
+        fields = ['rejection_reason', 'rejection_notes', 'status']
+
+
+class BatchCreateForm(forms.ModelForm):
+    samples = forms.ModelMultipleChoiceField(
+        queryset=Sample.objects.for_batch(),
+        widget=forms.CheckboxSelectMultiple,
+        required=True
+    )
+
+    class Meta:
+        model = Batch
+        fields = ['name', 'samples']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Batch identifier (e.g., BATCH-2023-001)'
+            })
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user and user.is_authenticated:
+            self.fields['samples'].queryset = Sample.objects.for_batch()

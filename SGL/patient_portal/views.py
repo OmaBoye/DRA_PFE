@@ -1,128 +1,168 @@
-from django.views.generic import CreateView, TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.contrib.auth import login
-from django.urls import reverse_lazy
-from django.shortcuts import redirect
-from django.contrib.auth.views import LoginView as BaseLoginView
-
-
-from samples.forms import SampleForm
-from .forms import PatientSignupForm, PatientLoginForm
-from patients.models import Patient
-from samples.models import Sample
-from results.models import Result
-from django.core.exceptions import PermissionDenied
-# Add to the top of views.py
+from django.shortcuts import get_object_or_404
+from django.views.generic import TemplateView
+from django.utils import timezone
+from django.http import HttpResponse, Http404, JsonResponse
+from django.contrib import messages
+from django.urls import reverse
 import logging
+
+from patients.models import Patient
+from analysis.models import Analysis
+from results.models import Result
+
 logger = logging.getLogger(__name__)
 
 
-class SignUpView(CreateView):
-    form_class = PatientSignupForm
-    template_name = 'patient_portal/signup.html'
-    success_url = reverse_lazy('patient_portal:home')
+class PatientResultsPortalView(TemplateView):
+    """
+    Main portal view for patients to access their test results
+    Secure access via QR token validation
+    """
+    template_name = "patient_portal/patient_results_portal.html"
 
-    def form_valid(self, form):
-        logger.debug("Form is valid, saving user")
-        response = super().form_valid(form)  # Save the user first
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        token = kwargs.get('token')
 
-        user = self.object
-        logger.debug(f"Created user: {user.username}")
+        if not token:
+            logger.error("No token provided in URL")
+            raise Http404("Access token required")
 
-        # Create patient profile
         try:
-            patient = Patient.objects.create(
-                user_account=user,
-                first_name=form.cleaned_data['first_name'],
-                last_name=form.cleaned_data['last_name'],
-                date_of_birth=form.cleaned_data['date_of_birth'],
-                phone_number=form.cleaned_data['phone_number'],
-                email=form.cleaned_data['email'],
-                gender=form.cleaned_data['gender']
-            )
-            logger.debug(f"Created patient profile: {patient}")
-        except Exception as e:
-            logger.error(f"Error creating patient profile: {e}")
-            raise
+            patient = get_object_or_404(Patient, qr_token=token)
 
-        # Login the user
-        login(self.request, user)
-        logger.debug(f"User {user.username} logged in successfully")
+            if patient.qr_token_expires < timezone.now():
+                logger.warning(f"Expired token attempt: {token}")
+                raise Http404("QR code expired - please request a new one")
+
+            context.update({
+                'patient': patient,
+                'pending_analyses': Analysis.objects.filter(
+                    sample__patient=patient,
+                    status__in=['pending', 'in_progress']
+                ).select_related('sample', 'analysis_type'),
+
+                'completed_results': Result.objects.filter(
+                    sample__patient=patient,
+                    status='completed'
+                ).select_related('sample'),
+                'token': token  # Pass token to template for print links
+            })
+            return context
+
+        except Exception as e:
+            logger.error(f"Portal view error: {str(e)}")
+            raise Http404("Unable to load results")
+
+
+def print_patient_result(request, token, result_id):
+    """
+    Secure PDF printing endpoint with proper error handling
+    """
+    try:
+        # 1. Validate token and patient
+        patient = get_object_or_404(Patient, qr_token=token)
+        if patient.qr_token_expires < timezone.now():
+            messages.error(request, "QR code expired")
+            raise Http404("Expired token")
+
+        # 2. Verify result belongs to patient
+        result = get_object_or_404(
+            Result,
+            pk=result_id,
+            sample__patient=patient,
+            status='completed'
+        )
+
+        # 3. Safely get analysis type name
+        analysis_name = "Unknown Test"
+        if hasattr(result.sample, 'analysis_type'):
+            analysis_name = result.sample.analysis_type.name
+        elif hasattr(result.sample, 'analysis'):
+            analysis_name = result.sample.analysis.analysis_type.name
+
+        # 4. Generate PDF
+        from io import BytesIO
+        from reportlab.pdfgen import canvas
+
+        buffer = BytesIO()
+        p = canvas.Canvas(buffer)
+
+        # PDF Content
+        p.setFont("Helvetica-Bold", 14)
+        p.drawString(100, 800, f"Test Result for {patient.full_name}")
+        p.setFont("Helvetica", 12)
+        p.drawString(100, 775, f"Test Name: {analysis_name}")
+        p.drawString(100, 750, f"Date: {result.test_date.strftime('%Y-%m-%d')}")
+
+        # Add your actual result data here
+        y_position = 725
+        if hasattr(result, 'values'):
+            for param, value in result.values.items():
+                p.drawString(100, y_position, f"{param}: {value}")
+                y_position -= 25
+
+        p.showPage()
+        p.save()
+
+        response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = (
+            f'attachment; filename="result_{result_id}_{patient.last_name}.pdf"'
+        )
         return response
 
-    def form_invalid(self, form):
-        logger.error(f"Form invalid with errors: {form.errors}")
-        return super().form_invalid(form)
+    except Exception as e:
+        logger.error(f"Print error for token {token}: {str(e)}", exc_info=True)
+        raise Http404("Error generating report. Please contact support.")
 
+class PatientPortalAPIView(TemplateView):
+    """
+    JSON API endpoint for external systems
+    Same token validation as web portal
+    """
 
-class PortalHomeView(TemplateView):  # Removed LoginRequiredMixin
-    template_name = 'patient_portal/home.html'
+    def get(self, request, *args, **kwargs):
+        token = kwargs.get('token')
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        try:
+            patient = get_object_or_404(Patient, qr_token=token)
 
-        # Only show patient-specific data if logged in
-        if self.request.user.is_authenticated and hasattr(self.request.user, 'patient_profile'):
-            patient = self.request.user.patient_profile
-            context['samples'] = Sample.objects.filter(
-                patient=patient
-            ).order_by('-collection_date')[:5]
-            context['results'] = Result.objects.filter(
-                sample__patient=patient
-            ).order_by('-test_date')[:5]
+            if patient.qr_token_expires < timezone.now():
+                return JsonResponse(
+                    {'error': 'Token expired'},
+                    status=400
+                )
 
-        return context
+            results = Result.objects.filter(
+                sample__patient=patient,
+                status='completed'
+            ).select_related('sample')
 
-class SubmitSampleView(LoginRequiredMixin, CreateView):
-    form_class = SampleForm
-    template_name = 'patient_portal/submit_sample.html'
-    success_url = reverse_lazy('patient_portal:home')
+            data = {
+                'patient': {
+                    'name': patient.full_name,
+                    'dob': patient.date_of_birth.strftime('%Y-%m-%d')
+                },
+                'results': [
+                    {
+                        'id': r.id,
+                        'test': r.sample.analysis_type.name,
+                        'date': r.test_date.strftime('%Y-%m-%d'),
+                        'pdf_url': reverse(
+                            'patient_portal:print_result',
+                            kwargs={
+                                'token': token,
+                                'result_id': r.id
+                            }
+                        )
+                    } for r in results
+                ]
+            }
+            return JsonResponse(data)
 
-    def dispatch(self, request, *args, **kwargs):
-        if not hasattr(request.user, 'patient_profile'):
-            raise PermissionDenied("Complete your profile before submitting samples.")
-        return super().dispatch(request, *args, **kwargs)
-
-    def form_valid(self, form):
-        form.instance.patient = self.request.user.patient_profile
-        return super().form_valid(form)
-
-
-class ResultDetailView(LoginRequiredMixin, TemplateView):
-    template_name = 'patient_portal/result_detail.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        if 'token' in kwargs:  # QR access
-            context['result'] = Result.objects.get(
-                sample__patient__qr_token=kwargs['token']
+        except Exception as e:
+            logger.error(f"API error: {str(e)}")
+            return JsonResponse(
+                {'error': 'Invalid request'},
+                status=400
             )
-        else:  # Logged-in access
-            if not hasattr(self.request.user, 'patient_profile'):
-                raise PermissionDenied("Patient profile not found.")
-
-            context['result'] = Result.objects.get(
-                pk=kwargs['pk'],
-                sample__patient=self.request.user.patient_profile
-            )
-
-        return context
-
-
-class PatientLoginView(BaseLoginView):
-    template_name = 'patient_portal/login.html'
-    authentication_form = PatientLoginForm
-    redirect_authenticated_user = True  # Important for redirects
-
-    def form_valid(self, form):
-        """Security check complete. Log the user in."""
-        login(self.request, form.get_user())
-        logger.debug(f"User {form.get_user().username} logged in successfully")
-        return redirect(self.get_success_url())
-
-    def get_success_url(self):
-        # Ensure user has profile before redirecting
-        if hasattr(self.request.user, 'patient_profile'):
-            return reverse_lazy('patient_portal:home')
-        return reverse_lazy('patient_portal:signup')

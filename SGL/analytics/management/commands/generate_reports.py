@@ -1,7 +1,9 @@
-# analytics/management/commands/generate_reports.py
+# analytics/manaent/commands/generate_reports.py
 from django.core.management.base import BaseCommand
 from analytics.models import LabPerformance
 from datetime import timedelta
+from django.db import models
+from django.utils import timezone
 
 
 class Command(BaseCommand):

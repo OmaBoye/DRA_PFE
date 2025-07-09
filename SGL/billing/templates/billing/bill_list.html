@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Bill Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-file-invoice-dollar me-2"></i>
+            Bill Management
+        </h2>
+
+        <div>
+            <!-- Create New Bill Button -->
+            <a href="{% url 'billing:bill_create' %}"
+               class="btn btn-primary"
+               hx-get="{% url 'billing:bill_create' %}"
+               hx-target="#modalContent"
+               data-bs-toggle="modal"
+               data-bs-target="#mainModal">
+                <i class="fas fa-plus me-2"></i> Create New Bill
+            </a>
+
+            <!-- Status Filter Dropdown -->
+            <div class="dropdown d-inline-block ms-2">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                        id="filterDropdown" data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                    <i class="fas fa-filter me-2"></i>
+                    {% if request.GET.status %}
+                        {{ request.GET.status|title }}
+                    {% else %}
+                        All Bills
+                    {% endif %}
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                    <li><a class="dropdown-item" href="?">All Bills</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    {% for value, display in status_choices %}
+                        <li><a class="dropdown-item" href="?status={{ value }}">
+                            {{ display }}
+                        </a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <!-- Search Form (Staff Only) -->
+            {% if request.user.is_staff %}
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <form method="get" class="input-group">
+                        <input type="text" name="patient" class="form-control"
+                               placeholder="Search by patient name..."
+                               value="{{ request.GET.patient }}">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Bills Table -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Bill #</th>
+                            <th>Patient</th>
+                            <th>Amount</th>
+                            <th>Issued</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bill in bills %}
+                        <tr>
+                            <td>{{ bill.id }}</td>
+                            <td>
+                                <a href="{% url 'patients:detail' bill.patient.id %}"
+                                   hx-get="{% url 'patients:detail' bill.patient.id %}"
+                                   hx-target="#modalContent"
+                                   data-bs-toggle="modal"
+                                   data-bs-target="#mainModal">
+                                    {{ bill.patient.full_name }}
+                                </a>
+                            </td>
+                            <td>${{ bill.amount }}</td>
+                            <td>{{ bill.issued_date|date:"M d, Y" }}</td>
+                            <td>
+                                <span class="badge bg-{% if bill.status == 'paid' %}success
+                                {% elif bill.status == 'cancelled' %}secondary
+                                {% else %}warning{% endif %}">
+                                    {{ bill.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group">
+                                    <a href="{% url 'billing:bill_detail' bill.id %}"
+                                       class="btn btn-sm btn-outline-primary"
+                                       title="View"
+                                       hx-get="{% url 'billing:bill_detail' bill.id %}"
+                                       hx-target="#modalContent"
+                                       data-bs-toggle="modal"
+                                       data-bs-target="#mainModal">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'billing:print_bill' bill.id %}"
+                                       class="btn btn-sm btn-outline-info"
+                                       title="Print">
+                                        <i class="fas fa-print"></i>
+                                    </a>
+                                    {% if request.user.is_staff %}
+                                    <a href="{% url 'billing:bill_update' bill.id %}"
+                                       class="btn btn-sm btn-outline-secondary"
+                                       title="Edit"
+                                       hx-get="{% url 'billing:bill_update' bill.id %}"
+                                       hx-target="#modalContent"
+                                       data-bs-toggle="modal"
+                                       data-bs-target="#mainModal">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <i class="fas fa-file-invoice-dollar fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No bills found</p>
+                                <a href="{% url 'billing:bill_create' %}"
+                                   class="btn btn-primary mt-2"
+                                   hx-get="{% url 'billing:bill_create' %}"
+                                   hx-target="#modalContent"
+                                   data-bs-toggle="modal"
+                                   data-bs-target="#mainModal">
+                                    <i class="fas fa-plus me-2"></i> Create First Bill
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.patient %}&patient={{ request.GET.patient }}{% endif %}">
+                            &laquo; Previous
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.patient %}&patient={{ request.GET.patient }}{% endif %}">
+                            {{ num }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.patient %}&patient={{ request.GET.patient }}{% endif %}">
+                            Next &raquo;
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Container -->
+<div class="modal fade" id="mainModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" id="modalContent">
+            <!-- Content will be loaded here via HTMX -->
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container for Notifications -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toastBody"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- HTMX Library -->
+<script src="https://unpkg.com/htmx.org@1.9.6"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap components
+    const modal = new bootstrap.Modal(document.getElementById('mainModal'));
+    const toast = new bootstrap.Toast(document.getElementById('toast'));
+
+    // Handle modal content loading
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === 'modalContent') {
+            // Initialize any form elements in the modal
+            const form = document.getElementById('bill-form');
+            if (form) {
+                form.addEventListener('submit', function() {
+                    // Show loading state
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        const spinner = document.createElement('span');
+                        spinner.className = 'spinner-border spinner-border-sm me-2';
+                        submitBtn.prepend(spinner);
+                    }
+                });
+            }
+        }
+    });
+
+    // Handle successful form submissions
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.successful) {
+            // Check if this was a form submission
+            if (evt.detail.requestConfig.elt.tagName === 'FORM') {
+                // Close the modal after a short delay
+                setTimeout(() => {
+                    modal.hide();
+
+                    // Show success toast
+                    document.getElementById('toastBody').textContent = 'Operation completed successfully';
+                    toast.show();
+
+                    // Refresh the bill list after a short delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }, 500);
+            }
+        }
+    });
+
+    // Handle modal closing
+    document.getElementById('mainModal').addEventListener('hidden.bs.modal', function() {
+        // Clear the modal content when closed
+        document.getElementById('modalContent').innerHTML = '';
+    });
+
+    // Handle search field debounce
+    const searchInput = document.querySelector('input[name="patient"]');
+    if (searchInput) {
+        let searchTimer;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                this.form.submit();
+            }, 500);
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table th {
+        background-color: #f8f9fa;
+        position: sticky;
+        top: 0;
+    }
+    .badge {
+        font-size: 0.85em;
+        font-weight: 500;
+    }
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+    }
+    #mainModal .modal-dialog {
+        max-width: 90%;
+    }
+    .htmx-indicator {
+        opacity: 0;
+        transition: opacity 200ms ease-in;
+    }
+    .htmx-request .htmx-indicator {
+        opacity: 1;
+    }
+    .toast {
+        min-width: 350px;
+    }
+</style>
+{% endblock %}

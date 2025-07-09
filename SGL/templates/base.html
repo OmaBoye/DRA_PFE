@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LabGestion - {% block title %}{% endblock %}</title>
+    <title>SysLab - {% block title %}{% endblock %}</title>
 
     <!-- Fonts & Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -28,8 +28,8 @@
                 <div class="d-flex align-items-center">
                     <a class="navbar-brand fw-bold text-primary me-3"
                        href="{% url 'dashboard' %}"
-                       style="font-family: 'Avenir', 'Tiempos', sans-serif; font-size: 1.75rem;">
-                        LabGestion
+                       style="font-family: 'Poppins', sans-serif; font-size: 2rem; letter-spacing: 1px; text-transform: uppercase;">
+                        LiS0
                     </a>
                 </div>
 
@@ -123,11 +123,17 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'billing:bill_list' %}">
+                            <i class="fas fa-file-invoice-dollar menu-icon"></i>
+                            <span class="menu-title">Facturation</span>
+                        </a>
+                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'reports:list' %}">
                             <i class="fas fa-chart-bar menu-icon"></i>
                             <span class="menu-title">Rapports</span>
                         </a>
                     </li>
+
 
                     {% if request.user.is_superuser %}
                     <li class="nav-item sidebar-category">
@@ -167,7 +173,7 @@
                         <div class="card-body">
                             <div class="d-sm-flex justify-content-center justify-content-sm-between">
                                 <span class="text-muted d-block text-center text-sm-left d-sm-inline-block">
-                                    Copyright © LabGestion {% now "Y" %}
+                                    Copyright © LiS0-Laboratories {% now "Y" %}
                                 </span>
                                 <span class="float-none float-sm-right d-block mt-1 mt-sm-0 text-center">
                                     Système de gestion de laboratoire

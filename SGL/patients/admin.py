@@ -14,3 +14,10 @@ class PatientAdmin(admin.ModelAdmin):
     list_filter = ('gender',)
     search_fields = ('first_name', 'last_name', 'phone_number')
     readonly_fields = ('qr_code',)
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if not change:  # Only for new patients
+            bill = obj.generate_bill()
+            from billing.utils import generate_bill_pdf
+            generate_bill_pdf(bill)

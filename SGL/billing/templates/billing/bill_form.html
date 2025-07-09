@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Update Bill #{{ object.id }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-edit me-2"></i>
+                Update Bill #{{ object.id }}
+            </h4>
+        </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5>Patient Information</h5>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <p><strong>Name:</strong> {{ object.patient.full_name }}</p>
+                                <p><strong>Date of Birth:</strong> {{ object.patient.date_of_birth|date:"M d, Y" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5>Bill Details</h5>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <p><strong>Issued:</strong> {{ object.issued_date|date:"M d, Y" }}</p>
+                                <p><strong>Current Status:</strong> 
+                                    <span class="badge bg-{% if object.status == 'paid' %}success{% elif object.status == 'cancelled' %}secondary{% else %}warning{% endif %}">
+                                        {{ object.get_status_display }}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.as_p }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-footer bg-light">
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'billing:bill_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

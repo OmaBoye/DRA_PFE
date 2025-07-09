@@ -72,7 +72,7 @@
                     <button onclick="document.getElementById('qrUpload').click()" class="btn btn-info btn-action">
                         <i class="fas fa-qrcode"></i> Scan QR
                     </button>
-                    <a href="{% url 'patients:results_portal' %}" class="btn btn-info">
+                    <a href="{% url 'patient_portal:results_portal' token=patient.qr_token %}" class="btn btn-info">
                         <i class="fas fa-qrcode"></i> Portail Résultats
                     </a>
                     <a href="{% url 'patients:update' patient.id %}" class="btn btn-primary btn-action">
@@ -137,8 +137,9 @@ function scanQR() {
     }).then(response => response.json())
       .then(data => {
           if (data.success) {
-              // Handle successful scan (e.g., redirect or show data)
-              alert('QR code scanné avec succès: ' + data.data);
+              // Redirect to portal with the scanned token
+              window.location.href = "{% url 'patient_portal:results_portal' token='TOKEN_PLACEHOLDER' %}"
+                  .replace('TOKEN_PLACEHOLDER', data.data.token);
           } else {
               alert('Erreur lors du scan: ' + data.error);
           }

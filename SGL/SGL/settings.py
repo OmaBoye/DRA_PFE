@@ -9,9 +9,8 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
-
 from celery.schedules import crontab
 from django.urls import reverse_lazy
 
@@ -43,14 +42,18 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'core',
     'patients',
+    'patient_portal',
     'samples',
     'results',
     'reports',
     'analysis',
-    'patient_portal',
-    'hl7_monitor',
-    'integrations',
     'channels',
+    'integrations',
+    'equipment',
+    'analytics',
+    'tests',
+    'simple_history',
+    'billing',
 
 
     'crispy_forms',
@@ -64,7 +67,6 @@ INSTALLED_APPS = [
     'django_pandas',
 
 
-
 ]
 
 MIDDLEWARE = [
@@ -76,6 +78,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'auditlog.middleware.AuditlogMiddleware',
+    'patient_portal.middleware.PortalAccessMiddleware',
+
 ]
 
 ROOT_URLCONF = 'SGL.urls'
@@ -170,12 +174,12 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your-email@gmail.com'
-EMAIL_HOST_PASSWORD = 'your-password'
+# settings.py
+EMAIL_HOST = 'localhost'  # Your local machine
+EMAIL_PORT = 2525
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = '4E889F9E3597BA781C5F28D4AEEA5848125D'
+DEFAULT_FROM_EMAIL = 'thirdthe3rd1ne.com'
 
 CELERY_BEAT_SCHEDULE = {
     'cleanup_old_records': {
@@ -210,13 +214,7 @@ X_FRAME_OPTIONS = 'DENY'
 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',          # Main app
-    'patient_portal.backends.PatientAuthBackend',         # Portal-specific
 ]
-# Portal/settings.py
-# LOGIN_URL = 'patient_portal:login'
-# LOGIN_REDIRECT_URL = 'patient_portal:home'
-# LOGOUT_REDIRECT_URL = 'patient_portal:login'
-
 
 
 ACCOUNT_USER_MODEL_USERNAME_FIELD = 'username'
@@ -224,3 +222,98 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 
+
+FHIR_SERVER_URL = "https://hapi.fhir.org/baseR4"  # Public test server
+
+# base directory
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+
+
+
+
+# Logging config
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)  # Create directory if it doesn't exist
+
+#  log file paths and related -ish
+DEBUG_LOG_PATH = str(LOGS_DIR / 'debug.log')
+ANALYSIS_LOG_PATH = str(LOGS_DIR / 'analysis.log')
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
+        'debug_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': DEBUG_LOG_PATH,
+            'formatter': 'verbose'
+        },
+        'analysis_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': ANALYSIS_LOG_PATH,
+            'formatter': 'verbose'
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'debug_file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'analysis': {
+            'handlers': ['console', 'analysis_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+DEBUG_LOG = os.path.join(LOGS_DIR, 'debug.log')
+ANALYSIS_LOG = os.path.join(LOGS_DIR, 'analysis.log')
+
+# task auto report to doc
+CELERY_BEAT_SCHEDULE = {
+    'send-daily-reports': {
+        'task': 'reports.tasks.send_daily_reports',
+        'schedule': crontab(hour=8, minute=0),  # 8 AM daily
+    },
+}
+
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # Load .env file
+
+JULIUS_API_KEY = os.getenv('JULIUS_API_KEY')
+MOCK_RESULTS = os.getenv('MOCK_MODE', 'False').lower() == 'true'
+
+# Clinic Information
+SITE_NAME = "LiS0 Labos"
+SITE_ADDRESS = "ave.Mokhtar Ould Daddah, Tevragh Zeina, Nouakchott"
+SITE_PHONE = "+22243786398"
+SITE_EMAIL = "Lis0Labs@Lab.clinic.com"
+SITE_BILLING_PHONE = "(555) 5555555"
+
+# Ensure these settings exist
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+SITE_URL = 'http://localhost:8000'  # Change to your actual domain
+
+LAB_NAME = "LiS0"

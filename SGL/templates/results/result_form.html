@@ -1,252 +1,305 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Résultats d'Analyse{% endblock %}
+{% block title %}{% if editing %}Modifier{% else %}Créer{% endif %} Résultat{% endblock %}
 
 {% block content %}
-<div class="wrapper">
-  <div class="form-container">
-    <form method="post" novalidate>
+<div class="container mt-4">
+  <div class="card">
+    <div class="card-header bg-primary text-white">
+      <h4 class="mb-0">
+        <i class="fas fa-vials me-2"></i>
+        {% if editing %}Modifier{% else %}Créer{% endif %} Résultats d'Analyse
+      </h4>
+    </div>
+
+    <form method="post" id="result-form">
       {% csrf_token %}
 
-      <h2 class="form-title"><i class="fas fa-vials"></i> Résultats d'Analyse</h2>
-      <p class="form-subtitle">Remplissez les résultats de l'analyse sélectionnée.</p>
+      <div class="card-body">
+        <!-- Patient and Sample Info -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="info-group">
+              <h5 class="info-title">Informations Patient</h5>
+              <div class="info-content">
+                <p><strong>Nom:</strong> {{ result.sample.patient.full_name }}</p>
+                <p><strong>Date de Naissance:</strong> {{ result.sample.patient.date_of_birth|date:"d/m/Y" }}</p>
+                <p><strong>Sexe:</strong> {{ result.sample.patient.get_gender_display }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="info-group">
+              <h5 class="info-title">Détails Échantillon</h5>
+              <div class="info-content">
+                <p><strong>Code-barres:</strong> {{ result.sample.barcode }}</p>
+                <p><strong>Type:</strong> {{ result.sample.get_sample_type_display }}</p>
+                <p><strong>Date Prélèvement:</strong> {{ result.sample.collection_date|date:"d/m/Y H:i" }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <!-- Sample and Patient Info -->
-      <div class="form-row">
-        <div class="form-group">
-          <label>Code-barres</label>
-          <input type="text" value="{{ analysis.sample.barcode }}" readonly />
+        <!-- Status and Date Fields -->
+        <div class="row mb-4">
+          <div class="col-md-4">
+            <div class="form-group">
+              <label for="{{ form.status.id_for_label }}" class="form-label">Statut</label>
+              {{ form.status }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label for="{{ form.test_date.id_for_label }}" class="form-label">Date des Résultats</label>
+              {{ form.test_date }}
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label for="{{ form.technician.id_for_label }}" class="form-label">Technicien</label>
+              {{ form.technician }}
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Type d'Échantillon</label>
-          <input type="text" value="{{ analysis.sample.get_sample_type_display }}" readonly />
-        </div>
-      </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label>Nom du Patient</label>
-          <input type="text" value="{{ analysis.sample.patient.full_name }}" readonly />
+        <!-- QR Scan Button -->
+        <div class="row mb-4">
+          <div class="col-md-12">
+            <div class="d-flex justify-content-end">
+              <button type="button" class="btn btn-info" onclick="document.getElementById('qrUpload').click()">
+                <i class="fas fa-camera me-2"></i>Scanner QR Code
+              </button>
+              <input type="file" id="qrUpload" accept="image/*" capture="environment" style="display:none;">
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Date de Naissance</label>
-          <input type="text" value="{{ analysis.sample.patient.dob|date:"d/m/Y" }}" readonly />
-        </div>
-      </div>
 
-      <!-- Analysis Meta Info -->
-      <div class="form-row">
-        <div class="form-group">
-          <label>Type d'Analyse</label>
-          <input type="text" value="{{ analysis.get_analysis_type_display }}" readonly />
-        </div>
-        <div class="form-group">
-          <label for="results_date">Date des Résultats <span class="required">*</span></label>
-          <input type="datetime-local" id="results_date" name="results_date" required />
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label for="status">Statut <span class="required">*</span></label>
-          <select id="status" name="status" required>
-            <option value="" disabled selected>Sélectionner...</option>
-            <option value="pending">En attente</option>
-            <option value="in_progress">En cours</option>
-            <option value="completed">Complété</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="technician">Technicien Responsable <span class="required">*</span></label>
-          <select id="technician" name="technician" required>
-            <option value="" disabled selected>Sélectionner...</option>
-            {% for tech in technicians %}
-              <option value="{{ tech.id }}" {% if tech.id == analysis.technician.id %}selected{% endif %}>
-                {{ tech.get_full_name }}
-              </option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-
-      <!-- Results Table -->
-      <div class="form-group full-width">
-        <label>Résultats des Tests</label>
-        <div class="table-responsive">
-          <table class="table table-bordered">
-            <thead>
+        <!-- Results Table -->
+        <div class="table-responsive mb-4">
+          <table class="table table-bordered table-hover">
+            <thead class="table-light">
               <tr>
-                <th>Test</th>
-                <th>Résultat</th>
-                <th>Unités</th>
-                <th>Valeurs de Référence</th>
-                <th>Statut</th>
+                <th width="25%">Paramètre</th>
+                <th width="20%">Résultat</th>
+                <th width="15%">Unité</th>
+                <th width="25%">Valeurs de Référence</th>
+                <th width="15%">Statut</th>
               </tr>
             </thead>
             <tbody>
-              {% for test in analysis.analysis_type.tests.all %}
+              {% for param, value in result.values.items %}
               <tr>
-                <td>{{ test.name }}</td>
-                <td><input type="text" class="form-control form-control-sm" name="result_{{ test.id }}" required /></td>
-                <td>{{ test.units }}</td>
-                <td>{{ test.reference_range }}</td>
-                <td><span class="badge bg-success">Normal</span></td>
+                <td>{{ param }}</td>
+                <td>
+                  <input type="text"
+                         name="values_{{ param }}"
+                         value="{{ value }}"
+                         class="form-control result-input"
+                         data-param="{{ param }}"
+                         required>
+                </td>
+                <td>
+                  {% if param == 'WBC' %}10³/μL
+                  {% elif param == 'RBC' %}10⁶/μL
+                  {% elif param == 'HGB' %}g/dL
+                  {% elif param == 'HCT' %}%
+                  {% elif param == 'PLT' %}10³/μL
+                  {% elif param == 'GLU' %}mg/dL
+                  {% elif param == 'CA' %}mg/dL
+                  {% elif param == 'NA' %}mmol/L
+                  {% elif param == 'K' %}mmol/L
+                  {% elif param == 'CL' %}mmol/L
+                  {% elif param == 'CO2' %}mmol/L
+                  {% else %}N/A{% endif %}
+                </td>
+                <td>
+                  {% if param == 'WBC' %}4.0-11.0
+                  {% elif param == 'RBC' %}4.2-6.1
+                  {% elif param == 'HGB' %}12.0-18.0
+                  {% elif param == 'HCT' %}37-54
+                  {% elif param == 'PLT' %}150-450
+                  {% elif param == 'GLU' %}70-100
+                  {% elif param == 'CA' %}8.5-10.2
+                  {% elif param == 'NA' %}135-145
+                  {% elif param == 'K' %}3.5-5.2
+                  {% elif param == 'CL' %}98-107
+                  {% elif param == 'CO2' %}23-29
+                  {% else %}N/A{% endif %}
+                </td>
+                <td class="text-center">
+                  <span class="badge status-badge" id="status-{{ param }}">
+                    {% if param == 'WBC' and value < 4.0 or value > 11.0 %}
+                      <span class="badge bg-danger">Anormal</span>
+                    {% elif param == 'RBC' and value < 4.2 or value > 6.1 %}
+                      <span class="badge bg-danger">Anormal</span>
+                    {% elif param == 'HGB' and value < 12.0 or value > 18.0 %}
+                      <span class="badge bg-danger">Anormal</span>
+                    {% elif param == 'HCT' and value < 37 or value > 54 %}
+                      <span class="badge bg-danger">Anormal</span>
+                    {% elif param == 'PLT' and value < 150 or value > 450 %}
+                      <span class="badge bg-danger">Anormal</span>
+                    {% elif param == 'GLU' and value < 70 or value > 100 %}
+                      <span class="badge bg-danger">Anormal</span>
+                    {% elif param == 'CA' and value < 8.5 or value > 10.2 %}
+                      <span class="badge bg-danger">Anormal</span>
+                    {% elif param == 'NA' and value < 135 or value > 145 %}
+                      <span class="badge bg-danger">Anormal</span>
+                    {% elif param == 'K' and value < 3.5 or value > 5.2 %}
+                      <span class="badge bg-danger">Anormal</span>
+                    {% elif param == 'CL' and value < 98 or value > 107 %}
+                      <span class="badge bg-danger">Anormal</span>
+                    {% elif param == 'CO2' and value < 23 or value > 29 %}
+                      <span class="badge bg-danger">Anormal</span>
+                    {% else %}
+                      <span class="badge bg-success">Normal</span>
+                    {% endif %}
+                  </span>
+                </td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
+
+        <!-- Notes Field -->
+        <div class="form-group mb-4">
+          <label for="{{ form.notes.id_for_label }}" class="form-label">Notes et Interprétation</label>
+          {{ form.notes }}
+        </div>
       </div>
 
-      <!-- Interpretation -->
-      <div class="form-group full-width">
-        <label for="interpretation">Interprétation</label>
-        <textarea id="interpretation" name="interpretation" rows="4" placeholder="Interprétation des résultats..."></textarea>
-      </div>
-
-      <!-- Actions -->
-      <div class="form-actions">
-        <a href="{% url 'results:list' %}" class="btn cancel-btn"><i class="fas fa-times"></i> Annuler</a>
-        <button type="submit" class="btn submit-btn"><i class="fas fa-save"></i> Enregistrer</button>
+      <div class="card-footer bg-light">
+        <div class="d-flex justify-content-between">
+          <a href="{% if editing %}{% url 'results:detail' result.pk %}{% else %}{% url 'results:list' %}{% endif %}"
+             class="btn btn-secondary">
+            <i class="fas fa-times me-2"></i>Annuler
+          </a>
+          <button type="submit" class="btn btn-primary" id="submit-btn">
+            <i class="fas fa-save me-2"></i>Enregistrer
+          </button>
+        </div>
       </div>
     </form>
   </div>
 </div>
+{% endblock %}
 
-<!-- Inline Styles (shared with patient_form) -->
+{% block extra_css %}
 <style>
-  .wrapper {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 20px 15px;
+  .info-group {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    height: 100%;
   }
-  .form-container {
-    background: #fff;
-    padding: 30px 40px;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  .info-title {
+    color: #495057;
+    font-size: 1.1rem;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
   }
-  .form-title {
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin-bottom: 5px;
-    color: #333;
+  .result-input {
+    text-align: center;
+    font-weight: 500;
   }
-  .form-subtitle {
-    color: #666;
-    margin-bottom: 25px;
+  .table th {
+    vertical-align: middle;
+    text-align: center;
   }
-  .form-row {
-    display: flex;
-    gap: 20px;
+  .status-badge {
+    font-size: 0.85rem;
+    min-width: 70px;
+    display: inline-block;
+  }
+  textarea {
+    min-height: 100px;
+  }
+  .qr-scan-container {
     margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
-  .form-group {
-    flex: 1;
-    min-width: 220px;
-    display: flex;
-    flex-direction: column;
-  }
-  .form-group.full-width {
-    flex: 1 1 100%;
-  }
-  label {
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #444;
-  }
-  .required {
-    color: #e63946;
-  }
-  input,
-  select,
-  textarea {
-    padding: 12px 15px;
-    border-radius: 8px;
-    border: 1.5px solid #ccc;
-    font-size: 1rem;
-    transition: border-color 0.3s ease;
-    outline: none;
-  }
-  input:focus,
-  select:focus,
-  textarea:focus {
-    border-color: #6a64f1;
-    box-shadow: 0 0 8px rgba(106, 100, 241, 0.3);
-  }
-  textarea {
-    resize: vertical;
-    min-height: 70px;
-  }
-  .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 15px;
-    margin-top: 30px;
-  }
-  .btn {
-    padding: 12px 28px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 1rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-  }
-  .submit-btn {
-    background-color: #6a64f1;
-    color: #fff;
-  }
-  .submit-btn:hover {
-    background-color: #574fd6;
-  }
-  .cancel-btn {
-    background-color: #e0e0e0;
-    color: #333;
-  }
-  .cancel-btn:hover {
-    background-color: #cfcfcf;
-  }
-  @media (max-width: 600px) {
-    .form-row {
-      flex-direction: column;
-    }
-    .form-group {
-      min-width: 100%;
-    }
   }
 </style>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-  // Set default date/time to now
-  const now = new Date();
-  const offset = now.getTimezoneOffset() * 60000;
-  document.getElementById('results_date').value = new Date(now - offset).toISOString().slice(0, 16);
+document.addEventListener('DOMContentLoaded', function() {
+  // Reference ranges mapping
+  const referenceRanges = {
+    'WBC': { min: 4.0, max: 11.0 },
+    'RBC': { min: 4.2, max: 6.1 },
+    'HGB': { min: 12.0, max: 18.0 },
+    'HCT': { min: 37, max: 54 },
+    'PLT': { min: 150, max: 450 },
+    'GLU': { min: 70, max: 100 },
+    'CA': { min: 8.5, max: 10.2 },
+    'NA': { min: 135, max: 145 },
+    'K': { min: 3.5, max: 5.2 },
+    'CL': { min: 98, max: 107 },
+    'CO2': { min: 23, max: 29 }
+  };
 
-  // Validate results against reference ranges
-  document.querySelectorAll('input[name^="result_"]').forEach(input => {
-    input.addEventListener('input', function () {
-      const row = this.closest('tr');
-      const refRange = row.querySelector('td:nth-child(4)').textContent;
-      const badge = row.querySelector('.badge');
+  // Real-time validation
+  document.querySelectorAll('.result-input').forEach(input => {
+    input.addEventListener('input', function() {
+      const param = this.dataset.param;
       const value = parseFloat(this.value);
-      const [min, max] = refRange.split('-').map(Number);
+      const statusBadge = document.getElementById(`status-${param}`);
+      const range = referenceRanges[param] || { min: 0, max: 0 };
 
-      if (!isNaN(value)) {
-        if (value >= min && value <= max) {
-          badge.className = 'badge bg-success';
-          badge.textContent = 'Normal';
-        } else {
-          badge.className = 'badge bg-danger';
-          badge.textContent = 'Anormal';
-        }
+      if (isNaN(value)) {
+        statusBadge.innerHTML = '<span class="badge bg-secondary">?</span>';
+      } else if (value < range.min) {
+        statusBadge.innerHTML = '<span class="badge bg-warning">Bas</span>';
+      } else if (value > range.max) {
+        statusBadge.innerHTML = '<span class="badge bg-danger">Haut</span>';
+      } else {
+        statusBadge.innerHTML = '<span class="badge bg-success">Normal</span>';
       }
+    });
+  });
+
+  // Initialize validation for existing values
+  document.querySelectorAll('.result-input').forEach(input => {
+    input.dispatchEvent(new Event('input'));
+  });
+
+  // QR Code Scanning
+  document.getElementById('qrUpload').addEventListener('change', function() {
+    if (!this.files || !this.files[0]) return;
+
+    const formData = new FormData();
+    formData.append('qr_image', this.files[0]);
+
+    // Show loading state
+    const originalText = document.querySelector('.btn-info').innerHTML;
+    document.querySelector('.btn-info').innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Scanning...';
+    document.querySelector('.btn-info').disabled = true;
+
+    fetch('/scan-qr/', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}'
+      }
+    }).then(response => {
+      if (response.redirected) {
+        window.location.href = response.url;
+      } else {
+        return response.json();
+      }
+    }).then(data => {
+      if (data && data.error) {
+        alert('Erreur: ' + data.error);
+      }
+    }).catch(error => {
+      console.error('Error:', error);
+      alert('Une erreur est survenue lors du scan');
+    }).finally(() => {
+      document.querySelector('.btn-info').innerHTML = originalText;
+      document.querySelector('.btn-info').disabled = false;
+      this.value = '';
     });
   });
 });

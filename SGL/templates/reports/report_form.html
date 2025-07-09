@@ -4,251 +4,349 @@
 {% block title %}Générer Rapport{% endblock %}
 
 {% block content %}
-<div class="report-form-container">
-    <div class="report-form-header">
-        <h1><i class="fas fa-chart-bar"></i> Générer un Rapport</h1>
-        <p>Sélectionnez les critères pour générer votre rapport</p>
+<div class="container py-4">
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom-0 py-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">
+          <i class="fas fa-file-alt me-2 text-primary"></i>
+          Générer un Rapport
+        </h4>
+      </div>
     </div>
 
-    <form method="post" class="report-form">
-        {% csrf_token %}
+    <form method="post" id="report-form" class="needs-validation" novalidate>
+      {% csrf_token %}
 
-        <div class="form-columns">
-            <!-- Left Column -->
-            <div class="form-column">
-                <div class="form-group">
-                    <label for="report_type" class="required">Type de rapport</label>
-                    <select id="report_type" name="report_type" required>
-                        <option value="" disabled selected>Sélectionner...</option>
-                        <option value="activity">Activité du laboratoire</option>
-                        <option value="performance">Performances</option>
-                        <option value="results">Résultats par analyse</option>
-                        <option value="inventory">Inventaire des échantillons</option>
-                    </select>
+      <div class="card-body">
+        <!-- Report Type Selection -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="form-group mb-4">
+              <label class="form-label fw-semibold required">Type de rapport</label>
+              <div class="btn-group-vertical w-100" role="group">
+                {% for value, display in form.report_type.field.choices %}
+                <input type="radio" class="btn-check" name="report_type"
+                       id="{{ value }}-report" value="{{ value }}"
+                       {% if form.report_type.value == value %}checked{% endif %} autocomplete="off">
+                <label class="btn btn-outline-primary text-start py-2" for="{{ value }}-report">
+                  <i class="fas fa-{% if value == 'results' %}flask{% elif value == 'activity' %}tasks{% else %}chart-line{% endif %} me-2"></i>
+                  {{ display }}
+                </label>
+                {% endfor %}
+              </div>
+              {% if form.report_type.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.report_type.errors }}
                 </div>
-
-                <div class="form-group">
-                    <label for="start_date" class="required">Date de début</label>
-                    <input type="date" id="start_date" name="start_date" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="analysis_type">Type d'analyse</label>
-                    <select id="analysis_type" name="analysis_type">
-                        <option value="" selected>Tous les types</option>
-                        <option value="hematology">Hématologie</option>
-                        <option value="biochemistry">Biochimie</option>
-                        <option value="microbiology">Microbiologie</option>
-                    </select>
-                </div>
+              {% endif %}
             </div>
-
-            <!-- Right Column -->
-            <div class="form-column">
-                <div class="form-group">
-                    <label for="format" class="required">Format</label>
-                    <select id="format" name="format" required>
-                        <option value="" disabled selected>Sélectionner...</option>
-                        <option value="pdf">PDF</option>
-                        <option value="excel">Excel</option>
-                        <option value="csv">CSV</option>
-                    </select>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group mb-4">
+              <label for="{{ form.format.id_for_label }}" class="form-label fw-semibold required">Format</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="fas fa-file-export"></i></span>
+                <select id="{{ form.format.id_for_label }}" name="format" class="form-select form-select-lg" required>
+                  {% for value, display in form.format.field.choices %}
+                  <option value="{{ value }}" {% if form.format.value == value %}selected{% endif %}>
+                    <i class="fas fa-file-{{ value }} me-2"></i> {{ display }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              {% if form.format.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.format.errors }}
                 </div>
-
-                <div class="form-group">
-                    <label for="end_date" class="required">Date de fin</label>
-                    <input type="date" id="end_date" name="end_date" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="sample_type">Type d'échantillon</label>
-                    <select id="sample_type" name="sample_type">
-                        <option value="" selected>Tous les types</option>
-                        <option value="blood">Sang</option>
-                        <option value="urine">Urine</option>
-                        <option value="tissue">Tissu</option>
-                    </select>
-                </div>
+              {% endif %}
             </div>
+          </div>
         </div>
 
-        <!-- Checkboxes -->
-        <div class="form-options">
-            <div class="form-check">
-                <input type="checkbox" id="include_details" name="include_details">
-                <label for="include_details">Inclure les détails complets</label>
+        <!-- Date Range -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label for="{{ form.start_date.id_for_label }}" class="form-label fw-semibold required">Date de début</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="fas fa-calendar-day"></i></span>
+                {{ form.start_date }}
+              </div>
+              {% if form.start_date.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.start_date.errors }}
+                </div>
+              {% endif %}
             </div>
-            <div class="form-check">
-                <input type="checkbox" id="group_by_department" name="group_by_department" checked>
-                <label for="group_by_department">Grouper par département</label>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label for="{{ form.end_date.id_for_label }}" class="form-label fw-semibold required">Date de fin</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="fas fa-calendar-day"></i></span>
+                {{ form.end_date }}
+              </div>
+              {% if form.end_date.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.end_date.errors }}
+                </div>
+              {% endif %}
             </div>
+          </div>
         </div>
 
-        <!-- Form Actions -->
-        <div class="form-actions">
-            <a href="{% url 'reports:list' %}" class="btn btn-cancel">
-                <i class="fas fa-times"></i> Annuler
-            </a>
-            <button type="submit" class="btn btn-submit">
-                <i class="fas fa-file-export"></i> Générer
-            </button>
+        <!-- Results Section -->
+        <div id="results-section" class="report-section bg-light rounded-3 p-3 mb-4" {% if form.report_type.value != 'results' %}style="display:none"{% endif %}>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.analysis_type.id_for_label }}" class="form-label fw-semibold">Type d'analyse</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-white"><i class="fas fa-microscope"></i></span>
+                  {{ form.analysis_type }}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.sample_type.id_for_label }}" class="form-label fw-semibold">Type d'échantillon</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-white"><i class="fas fa-vial"></i></span>
+                  {{ form.sample_type }}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="{{ form.results.id_for_label }}" class="form-label fw-semibold">Résultats disponibles</label>
+            <div class="position-relative">
+              {{ form.results }}
+            </div>
+            <small class="text-muted d-block mt-1">
+              <i class="fas fa-info-circle me-1"></i> Sélection multiple avec Ctrl/Cmd
+            </small>
+          </div>
         </div>
+
+        <!-- Activity Section -->
+        <div id="activity-section" class="report-section bg-light rounded-3 p-3 mb-4" {% if form.report_type.value != 'activity' %}style="display:none"{% endif %}>
+          <div class="form-group">
+            <label for="{{ form.activity_description.id_for_label }}" class="form-label fw-semibold">Description de l'activité</label>
+            {{ form.activity_description }}
+          </div>
+        </div>
+
+        <!-- Performance Section -->
+        <div id="performance-section" class="report-section bg-light rounded-3 p-3 mb-4" {% if form.report_type.value != 'performance' %}style="display:none"{% endif %}>
+          <div class="form-group">
+            <label for="{{ form.performance_notes.id_for_label }}" class="form-label fw-semibold">Notes de performance</label>
+            {{ form.performance_notes }}
+          </div>
+        </div>
+
+        <!-- Options -->
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group mb-4">
+              <label for="{{ form.generated_by.id_for_label }}" class="form-label fw-semibold required">Généré par</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="fas fa-user-edit"></i></span>
+                {{ form.generated_by }}
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-check form-switch mb-3">
+              {{ form.include_details }}
+              <label class="form-check-label fw-semibold" for="{{ form.include_details.id_for_label }}">Inclure les détails complets</label>
+            </div>
+            <div class="form-check form-switch">
+              {{ form.group_by_department }}
+              <label class="form-check-label fw-semibold" for="{{ form.group_by_department.id_for_label }}">Grouper par département</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-footer bg-white border-top-0 pt-0">
+        <div class="d-flex justify-content-between">
+          <a href="{% url 'reports:list' %}" class="btn btn-outline-secondary px-4">
+            <i class="fas fa-times me-2"></i>Annuler
+          </a>
+          <button type="submit" class="btn btn-primary px-4" id="submit-btn">
+            <i class="fas fa-file-export me-2"></i>Générer
+          </button>
+        </div>
+      </div>
     </form>
+  </div>
 </div>
+{% endblock %}
 
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 <style>
-    /* Base Container */
-    .report-form-container {
-        width: 100%;
-        max-width: none;
-        padding: 2rem;
-        background: #f8f9fa;
-        min-height: calc(100vh - var(--header-height));
-    }
+  .card {
+    border-radius: 0.75rem;
+  }
 
-    /* Header */
-    .report-form-header {
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid #e0e0e0;
-    }
-    .report-form-header h1 {
-        font-size: 1.8rem;
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-    .report-form-header p {
-        color: #7f8c8d;
-        margin: 0;
-    }
+  .form-label.required:after {
+    content: " *";
+    color: #dc3545;
+  }
 
-    /* Form Layout */
-    .report-form {
-        background: white;
-        border-radius: 8px;
-        padding: 2rem;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    }
-    .form-columns {
-        display: flex;
-        gap: 3rem;
-        margin-bottom: 1.5rem;
-    }
-    .form-column {
-        flex: 1;
-    }
+  .report-section {
+    transition: all 0.3s ease;
+  }
 
-    /* Form Elements */
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-    label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-        color: #34495e;
-    }
-    label.required:after {
-        content: " *";
-        color: #e74c3c;
-    }
-    select, input[type="date"] {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        background-color: #f8f9fa;
-        font-size: 1rem;
-    }
-    select:focus, input[type="date"]:focus {
-        outline: none;
-        border-color: #3498db;
-        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-    }
+  .btn-check:checked + .btn-outline-primary {
+    background-color: rgba(13, 110, 253, 0.1);
+    border-color: #0d6efd;
+  }
 
-    /* Checkboxes */
-    .form-options {
-        background: #f8f9fa;
-        padding: 1.5rem;
-        border-radius: 6px;
-        margin-bottom: 2rem;
-    }
-    .form-check {
-        margin-bottom: 0.75rem;
-        display: flex;
-        align-items: center;
-    }
-    .form-check:last-child {
-        margin-bottom: 0;
-    }
-    .form-check input {
-        margin-right: 0.75rem;
-        width: 1.25rem;
-        height: 1.25rem;
-    }
+  .btn-outline-primary {
+    border-radius: 0.5rem !important;
+    margin-bottom: 0.5rem;
+  }
 
-    /* Buttons */
-    .form-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 1rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid #eee;
-    }
-    .btn {
-        padding: 0.75rem 1.5rem;
-        border-radius: 6px;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .btn-cancel {
-        background: white;
-        border: 1px solid #ddd;
-        color: #34495e;
-    }
-    .btn-cancel:hover {
-        background: #f8f9fa;
-    }
-    .btn-submit {
-        background: #2ecc71;
-        border: 1px solid #27ae60;
-        color: white;
-    }
-    .btn-submit:hover {
-        background: #27ae60;
-    }
+  select.form-select-lg {
+    padding: 0.5rem 1rem;
+    background-position: right 1rem center;
+  }
 
-    /* Responsive */
-    @media (max-width: 768px) {
-        .form-columns {
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .report-form-container {
-            padding: 1rem;
-        }
-        .report-form {
-            padding: 1.5rem;
-        }
-    }
+  .input-group-text {
+    border-right: none;
+  }
+
+  .form-control, .form-select, .input-group-text {
+    border-radius: 0.5rem !important;
+  }
+
+  textarea.form-control {
+    min-height: 120px;
+  }
+
+  .form-switch .form-check-input {
+    width: 2.5em;
+    height: 1.25em;
+    margin-right: 0.5em;
+  }
 </style>
+{% endblock %}
 
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Set default dates (last 30 days)
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 30);
+  // Initialize Select2 with Bootstrap 5 theme
+  $('#{{ form.results.id_for_label }}').select2({
+    theme: 'bootstrap-5',
+    placeholder: "Sélectionnez les résultats",
+    width: '100%',
+    closeOnSelect: false,
+    language: {
+      noResults: function() {
+        return "Aucun résultat trouvé pour cette période";
+      }
+    }
+  });
 
-    document.getElementById('end_date').valueAsDate = endDate;
-    document.getElementById('start_date').valueAsDate = startDate;
+  // Set default dates (last 30 days)
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - 30);
+
+  if (!document.getElementById('{{ form.end_date.id_for_label }}').value) {
+    document.getElementById('{{ form.end_date.id_for_label }}').valueAsDate = endDate;
+  }
+  if (!document.getElementById('{{ form.start_date.id_for_label }}').value) {
+    document.getElementById('{{ form.start_date.id_for_label }}').valueAsDate = startDate;
+  }
+
+  // Handle report type switching
+  const reportTypeRadios = document.querySelectorAll('input[name="report_type"]');
+
+  function showActiveSection() {
+    // Hide all sections first
+    document.querySelectorAll('.report-section').forEach(section => {
+      section.style.display = 'none';
+    });
+
+    // Show the active one
+    const selectedType = document.querySelector('input[name="report_type"]:checked').value;
+    document.getElementById(`${selectedType}-section`).style.display = 'block';
+  }
+
+  // Update results when dates or analysis type changes
+  function updateResults() {
+    const startDate = document.getElementById('{{ form.start_date.id_for_label }}').value;
+    const endDate = document.getElementById('{{ form.end_date.id_for_label }}').value;
+    const analysisType = document.getElementById('{{ form.analysis_type.id_for_label }}').value;
+
+    if (startDate && endDate) {
+      let url = "{% url 'reports:api_results' %}?start_date=" + startDate + "&end_date=" + endDate;
+      if (analysisType) {
+        url += "&analysis_type=" + analysisType;
+      }
+
+      fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error('Erreur réseau');
+          return response.json();
+        })
+        .then(data => {
+          const select = $('#{{ form.results.id_for_label }}');
+          select.empty();
+
+          if (data.length === 0) {
+            select.append('<option disabled>Aucun résultat disponible pour cette période</option>');
+          } else {
+            // Add new options
+            data.forEach(result => {
+              const option = new Option(
+                `${result.barcode} - ${result.patient} (${result.test_type})`,
+                result.id,
+                false,
+                false
+              );
+              select.append(option);
+            });
+          }
+
+          // Restore selected values
+          const selectedValues = JSON.parse('{{ form.results.value|escapejs|default:"[]" }}');
+          if (selectedValues.length > 0) {
+            select.val(selectedValues).trigger('change');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          $('#{{ form.results.id_for_label }}').empty().append('<option disabled>Erreur de chargement des résultats</option>');
+        });
+    }
+  }
+
+  // Add event listeners
+  document.getElementById('{{ form.start_date.id_for_label }}').addEventListener('change', updateResults);
+  document.getElementById('{{ form.end_date.id_for_label }}').addEventListener('change', updateResults);
+  document.getElementById('{{ form.analysis_type.id_for_label }}').addEventListener('change', updateResults);
+  reportTypeRadios.forEach(radio => {
+    radio.addEventListener('change', showActiveSection);
+  });
+
+  // Form submission handling
+  const form = document.getElementById('report-form');
+  form.addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Génération en cours...';
+  });
+
+  // Initialize
+  showActiveSection();
+  updateResults();
 });
 </script>
 {% endblock %}

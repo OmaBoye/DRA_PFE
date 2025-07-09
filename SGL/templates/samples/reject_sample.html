@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Reject Sample{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card border-danger">
+    <div class="card-header bg-danger text-white">
+      <h4>Reject Sample {{ sample.barcode }}</h4>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="d-flex justify-content-between mt-4">
+          <a href="{% url 'samples:detail' sample.pk %}" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-danger">Confirm Rejection</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

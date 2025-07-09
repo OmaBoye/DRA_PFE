@@ -3,174 +3,21 @@
 
 {% block title %}{% if form.instance.pk %}Modifier{% else %}Nouvelle{% endif %} Analyse{% endblock %}
 
-{% block content %}
-<div class="wrapper">
-  <div class="form-container">
-    <form method="post" enctype="multipart/form-data" novalidate>
-      {% csrf_token %}
-      <h2 class="form-title">
-        <i class="fas fa-flask"></i> {% if form.instance.pk %}Modifier{% else %}Nouvelle{% endif %} Analyse
-      </h2>
-      <p class="form-subtitle">
-        {% if form.instance.pk %}
-        Modifier les détails de cette analyse
-        {% else %}
-        Soumettez une nouvelle demande d'analyse pour un échantillon
-        {% endif %}
-      </p>
-
-      {% if form.non_field_errors %}
-      <div class="alert alert-danger">
-        {% for error in form.non_field_errors %}
-        {{ error }}
-        {% endfor %}
-      </div>
-      {% endif %}
-
-      <div class="form-row">
-        <div class="form-group {% if form.sample.errors %}has-error{% endif %}">
-          {{ form.sample.label_tag }}
-          {{ form.sample }}
-          {% if form.sample.errors %}
-          <div class="error-message">
-            {% for error in form.sample.errors %}
-            {{ error }}
-            {% endfor %}
-          </div>
-          {% endif %}
-        </div>
-
-        <div class="form-group {% if form.priority.errors %}has-error{% endif %}">
-          {{ form.priority.label_tag }}
-          {{ form.priority }}
-          {% if form.priority.errors %}
-          <div class="error-message">
-            {% for error in form.priority.errors %}
-            {{ error }}
-            {% endfor %}
-          </div>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group {% if form.analysis_type.errors %}has-error{% endif %}">
-          {{ form.analysis_type.label_tag }}
-          <select id="id_analysis_type" name="analysis_type" required>
-            <option value="" disabled selected>Sélectionner...</option>
-            {% if form.instance.pk %}
-              {% for type in form.fields.analysis_type.queryset %}
-                <option value="{{ type.id }}" {% if type.id == form.instance.analysis_type.id %}selected{% endif %}>{{ type.name }}</option>
-              {% endfor %}
-            {% endif %}
-          </select>
-          {% if form.analysis_type.errors %}
-          <div class="error-message">
-            {% for error in form.analysis_type.errors %}
-            {{ error }}
-            {% endfor %}
-          </div>
-          {% endif %}
-        </div>
-
-        <div class="form-group {% if form.due_date.errors %}has-error{% endif %}">
-          {{ form.due_date.label_tag }}
-          {{ form.due_date }}
-          {% if form.due_date.errors %}
-          <div class="error-message">
-            {% for error in form.due_date.errors %}
-            {{ error }}
-            {% endfor %}
-          </div>
-          {% endif %}
-        </div>
-      </div>
-
-      <div class="form-group full-width {% if form.technician.errors %}has-error{% endif %}">
-        {{ form.technician.label_tag }}
-        {{ form.technician }}
-        {% if form.technician.errors %}
-        <div class="error-message">
-          {% for error in form.technician.errors %}
-          {{ error }}
-          {% endfor %}
-        </div>
-        {% endif %}
-      </div>
-
-      <!-- Blood Panels Section -->
-      <div class="form-group full-width" id="panels-group" style="display: none;">
-        <label>Panels Sanguins</label>
-        <div class="panels-container">
-          {% for value, label in form.panels.field.choices %}
-          <div class="panel-option">
-            <input type="checkbox" id="panel-{{ value }}" name="panels" value="{{ value }}"
-                   {% if value in form.panels.value %}checked{% endif %}>
-            <label for="panel-{{ value }}">{{ label }}</label>
-          </div>
-          {% endfor %}
-        </div>
-      </div>
-
-      <div class="form-group full-width {% if form.notes.errors %}has-error{% endif %}">
-        {{ form.notes.label_tag }}
-        {{ form.notes }}
-        {% if form.notes.errors %}
-        <div class="error-message">
-          {% for error in form.notes.errors %}
-          {{ error }}
-          {% endfor %}
-        </div>
-        {% endif %}
-      </div>
-
-      <div class="form-actions">
-        <a href="{% url 'analysis:list' %}" class="btn cancel-btn">
-          <i class="fas fa-times"></i> Annuler
-        </a>
-        <button type="submit" class="btn submit-btn">
-          <i class="fas fa-paper-plane"></i> {% if form.instance.pk %}Mettre à jour{% else %}Soumettre{% endif %}
-        </button>
-      </div>
-    </form>
-  </div>
-</div>
-
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/@ttskch/select2-bootstrap4-theme@1.5.2/dist/select2-bootstrap4.min.css" rel="stylesheet" />
 <style>
-  /* Base layout */
-  * {
-    box-sizing: border-box;
-  }
-  body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f4f7f8;
-    padding: 20px 8px;
-  }
   .wrapper {
     max-width: 1100px;
     margin: 0 auto;
-    padding: 0 15px;
+    padding: 20px 15px;
   }
   .form-container {
-    background: white;
+    background: #fff;
     padding: 30px 40px;
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   }
-
-  /* Titles */
-  .form-title {
-    margin-bottom: 5px;
-    font-weight: 700;
-    font-size: 1.8rem;
-    color: #333;
-  }
-  .form-subtitle {
-    margin-bottom: 25px;
-    color: #666;
-  }
-
-  /* Form rows & groups */
   .form-row {
     display: flex;
     gap: 20px;
@@ -186,124 +33,74 @@
   .form-group.full-width {
     flex: 1 1 100%;
   }
-  .has-error select,
-  .has-error textarea,
-  .has-error input {
-    border-color: #e63946;
-  }
-
-  label {
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #444;
-  }
-  .required:after {
-    content: " *";
-    color: #e63946;
-  }
-
-  /* Inputs and selects */
-  input[type="text"],
-  input[type="email"],
-  input[type="tel"],
-  input[type="date"],
-  select,
-  textarea,
-  input[type="file"] {
-    padding: 12px 15px;
-    border-radius: 8px;
-    border: 1.5px solid #ccc;
-    font-size: 1rem;
-    transition: border-color 0.3s ease;
-    outline-offset: 2px;
-  }
-  input[type="text"]:focus,
-  input[type="email"]:focus,
-  input[type="tel"]:focus,
-  input[type="date"]:focus,
-  select:focus,
-  textarea:focus,
-  input[type="file"]:focus {
-    border-color: #6a64f1;
-    box-shadow: 0 0 8px rgba(106, 100, 241, 0.3);
-  }
-
-  textarea {
-    resize: vertical;
-    min-height: 70px;
-  }
-
-  /* Error messages */
-  .error-message {
-    color: #e63946;
-    font-size: 0.875rem;
-    margin-top: 5px;
-  }
-
-  /* Panels container */
-  .panels-container {
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1.5px solid #ccc;
-  }
-
-  .panel-option {
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-  }
-
-  .panel-option input[type="checkbox"] {
-    margin-right: 10px;
-    width: 18px;
-    height: 18px;
-    accent-color: #6a64f1;
-    cursor: pointer;
-  }
-
-  .panel-option label {
-    font-weight: normal;
-    color: #444;
-    cursor: pointer;
-  }
-
-  /* Form actions */
   .form-actions {
-    margin-top: 30px;
     display: flex;
     justify-content: flex-end;
     gap: 15px;
+    margin-top: 30px;
   }
   .btn {
     padding: 12px 28px;
     border-radius: 8px;
-    border: none;
     font-weight: 600;
-    cursor: pointer;
     font-size: 1rem;
     display: inline-flex;
     align-items: center;
     gap: 8px;
     text-decoration: none;
+    border: none;
+    cursor: pointer;
   }
   .submit-btn {
     background-color: #6a64f1;
-    color: white;
-    transition: background-color 0.3s ease;
+    color: #fff;
   }
   .submit-btn:hover {
     background-color: #574fd6;
   }
   .cancel-btn {
     background-color: #e0e0e0;
-    color: #555;
+    color: #333;
   }
   .cancel-btn:hover {
     background-color: #cfcfcf;
   }
-
-  /* Responsive */
+  .card-header {
+    border-radius: 12px 12px 0 0 !important;
+  }
+  .card {
+    border-radius: 12px;
+    border: none;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: #6a64f1;
+    box-shadow: 0 0 8px rgba(106, 100, 241, 0.3);
+  }
+  .form-check-input:checked {
+    background-color: #6a64f1;
+    border-color: #6a64f1;
+  }
+  .panel-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .panel-card-header {
+    background-color: #f8f9fa;
+    padding: 12px 15px;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .panel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    padding: 15px;
+  }
+  .panel-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
   @media (max-width: 600px) {
     .form-row {
       flex-direction: column;
@@ -311,110 +108,226 @@
     .form-group {
       min-width: 100%;
     }
+    .panel-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
+{% endblock %}
 
+{% block content %}
+<div class="wrapper">
+  <div class="form-container">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">
+          {% if form.instance.pk %}Modifier{% else %}Nouvelle{% endif %} Analyse
+        </h4>
+      </div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}
+            {{ error }}
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="{{ form.sample.id_for_label }}">Échantillon</label>
+              {{ form.sample }}
+              {% if form.sample.errors %}
+              <div class="invalid-feedback d-block">
+                {{ form.sample.errors }}
+              </div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label for="{{ form.analysis_type.id_for_label }}">Type d'analyse</label>
+              {{ form.analysis_type }}
+              {% if form.analysis_type.errors %}
+              <div class="invalid-feedback d-block">
+                {{ form.analysis_type.errors }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="{{ form.priority.id_for_label }}">Priorité</label>
+              {{ form.priority }}
+              {% if form.priority.errors %}
+              <div class="invalid-feedback d-block">
+                {{ form.priority.errors }}
+              </div>
+              {% endif %}
+            </div>
+            <div class="form-group">
+              <label for="{{ form.instrument_used.id_for_label }}">Équipement</label>
+              <select name="{{ form.instrument_used.name }}" id="{{ form.instrument_used.id_for_label }}"
+                      class="form-control select2-single">
+                <option value="">Sélectionner un équipement...</option>
+                {% for equipment in instruments %}
+                <option value="{{ equipment.name }}"
+                  {% if form.instrument_used.value == equipment.name %}selected{% endif %}>
+                  {{ equipment.name }} ({{ equipment.model }})
+                </option>
+                {% endfor %}
+              </select>
+              {% if form.instrument_used.errors %}
+              <div class="invalid-feedback d-block">
+                {{ form.instrument_used.errors }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="id_technician" class="form-label">Technicien Assigné</label>
+            <input type="text" class="form-control" id="id_technician"
+                   name="technician" value="{{ form.technician.value|default:'' }}">
+            {% if form.technician.errors %}
+            <div class="invalid-feedback d-block">
+              {{ form.technician.errors }}
+            </div>
+            {% endif %}
+          </div>
+
+          {% if form.panels %}
+          <div class="form-group full-width">
+            <div class="panel-card">
+              <div class="panel-card-header">
+                <label class="form-label mb-0">Panneaux Sanguins</label>
+                <small class="text-muted">Sélectionnez les panneaux requis</small>
+              </div>
+              <div class="panel-grid">
+                {% for value, label in form.panels.field.choices %}
+                <div class="panel-item">
+                  <input class="form-check-input" type="checkbox"
+                         name="panels" id="panel_{{ forloop.counter }}"
+                         value="{{ value }}"
+                         {% if value in form.panels.value %}checked{% endif %}>
+                  <label class="form-check-label" for="panel_{{ forloop.counter }}">
+                    {{ label }}
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+              {% if form.panels.errors %}
+              <div class="invalid-feedback d-block px-3 pb-3">
+                {{ form.panels.errors }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-group full-width">
+            <label for="{{ form.notes.id_for_label }}">Notes</label>
+            {{ form.notes }}
+            {% if form.notes.errors %}
+            <div class="invalid-feedback d-block">
+              {{ form.notes.errors }}
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="form-actions">
+            <a href="{% if form.instance.pk %}{% url 'analysis:detail' form.instance.pk %}{% else %}{% url 'analysis:list' %}{% endif %}"
+               class="btn cancel-btn">
+              <i class="fas fa-arrow-left me-2"></i> Annuler
+            </a>
+            <button type="submit" class="btn submit-btn">
+              <i class="fas fa-save me-2"></i> {% if form.instance.pk %}Mettre à jour{% else %}Créer{% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/i18n/fr.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Set default due date to 3 days from now if empty
-    const dueDateField = document.getElementById('id_due_date');
-    if (dueDateField && !dueDateField.value) {
-        const today = new Date();
-        const dueDate = new Date(today);
-        dueDate.setDate(today.getDate() + 3);
-        dueDateField.valueAsDate = dueDate;
-    }
+    // Initialize Select2 for equipment dropdown
+    $('.select2-single').select2({
+        theme: 'bootstrap4',
+        language: 'fr',
+        width: '100%',
+        placeholder: "Sélectionner un équipement"
+    });
 
-    // Get DOM elements
+    // Dynamic analysis type filtering based on sample
     const sampleSelect = document.getElementById('id_sample');
     const analysisTypeSelect = document.getElementById('id_analysis_type');
-    const panelsGroup = document.getElementById('panels-group');
 
-    // Function to load analysis types for selected sample
-    function loadAnalysisTypes(sampleId) {
-        if (!sampleId) {
-            analysisTypeSelect.innerHTML = '<option value="" disabled selected>Sélectionner...</option>';
-            return;
-        }
-
-        fetch(`/analysis/get-analysis-types/?sample_id=${sampleId}`)
-            .then(response => {
-                if (!response.ok) throw new Error('Network response was not ok');
-                return response.json();
-            })
-            .then(data => {
-                analysisTypeSelect.innerHTML = '';
-
-                // Add default option
-                const defaultOption = document.createElement('option');
-                defaultOption.value = '';
-                defaultOption.textContent = 'Sélectionner...';
-                defaultOption.disabled = true;
-                defaultOption.selected = true;
-                analysisTypeSelect.appendChild(defaultOption);
-
-                // Add analysis types
-                data.analysis_types.forEach(type => {
-                    const option = document.createElement('option');
-                    option.value = type.id;
-                    option.textContent = type.name;
-                    analysisTypeSelect.appendChild(option);
-                });
-
-                // Preselect current analysis type in edit mode
-                {% if form.instance.pk %}
-                if ({{ form.instance.analysis_type.id|default:'0' }} > 0) {
-                    analysisTypeSelect.value = {{ form.instance.analysis_type.id }};
-                }
-                {% endif %}
-            })
-            .catch(error => {
-                console.error('Error loading analysis types:', error);
-                analysisTypeSelect.innerHTML = '<option value="" disabled selected>Erreur de chargement</option>';
-            });
-    }
-
-    // Function to check if sample is blood type
-    function checkBloodSample(sampleId) {
-        if (!sampleId) {
-            panelsGroup.style.display = 'none';
-            return;
-        }
-
-        fetch(`/samples/${sampleId}/type/`)
-            .then(response => {
-                if (!response.ok) throw new Error('Network response was not ok');
-                return response.json();
-            })
-            .then(data => {
-                panelsGroup.style.display = data.sample_type === 'blood' ? 'block' : 'none';
-                if (data.sample_type !== 'blood') {
-                    document.querySelectorAll('input[name="panels"]').forEach(cb => cb.checked = false);
-                }
-            })
-            .catch(error => {
-                console.error('Error checking sample type:', error);
-                panelsGroup.style.display = 'none';
-            });
-    }
-
-    // Event listeners
-    if (sampleSelect) {
+    if (sampleSelect && analysisTypeSelect) {
         sampleSelect.addEventListener('change', function() {
             const sampleId = this.value;
-            loadAnalysisTypes(sampleId);
-            checkBloodSample(sampleId);
+            if (!sampleId) return;
+
+            fetch(`/samples/${sampleId}/type/`)
+                .then(response => response.json())
+                .then(data => {
+                    // Clear existing options
+                    analysisTypeSelect.innerHTML = '';
+
+                    // Add default option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Sélectionner un type d\'analyse...';
+                    analysisTypeSelect.appendChild(defaultOption);
+
+                    // Add new options based on sample type
+                    data.analysis_types.forEach(type => {
+                        const option = document.createElement('option');
+                        option.value = type.id;
+                        option.textContent = `${type.name} (${type.code})`;
+                        analysisTypeSelect.appendChild(option);
+                    });
+
+                    // Trigger change to update panels visibility
+                    $(analysisTypeSelect).trigger('change');
+                });
         });
 
-        // Initialize if sample is preselected (edit mode)
-        {% if form.instance.pk %}
-        if (sampleSelect.value) {
-            loadAnalysisTypes(sampleSelect.value);
-            checkBloodSample(sampleSelect.value);
+        // Show/hide panels based on analysis type selection
+        $(analysisTypeSelect).on('change', function() {
+            const selectedText = this.options[this.selectedIndex].text;
+            const panelsSection = document.querySelector('.panel-card');
+
+            if (panelsSection) {
+                if (selectedText.includes('Panel') || selectedText.includes('Panneau')) {
+                    panelsSection.style.display = 'block';
+                } else {
+                    panelsSection.style.display = 'none';
+                    // Uncheck all panels when hidden
+                    document.querySelectorAll('input[name="panels"]').forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                }
+            }
+        });
+
+        // Initialize visibility on page load
+        if (analysisTypeSelect.value) {
+            $(analysisTypeSelect).trigger('change');
         }
-        {% endif %}
+    }
+
+    // Set default priority if not set
+    if (!document.getElementById('id_priority').value) {
+        document.getElementById('id_priority').value = 'routine';
     }
 });
 </script>
-
 {% endblock %}

@@ -1,72 +1,375 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Détails de l'Échantillon{% endblock %}
-{% block page_title %}Détails de l'Échantillon{% endblock %}
-
-{% block breadcrumb_items %}
-<li class="breadcrumb-item"><a href="{% url 'samples:list' %}">Échantillons</a></li>
-<li class="breadcrumb-item active">Détails</li>
-{% endblock %}
+{% block title %}Échantillon {{ sample.barcode }} - Détails{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-lg-8">
-        <div class="card lab-card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5>Échantillon #{{ sample.barcode }}</h5>
-                    <span class="badge bg-{{ sample.get_status_badge }}">{{ sample.get_status_display }}</span>
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center bg-white">
+            <h4 class="mb-0">
+                <i class="fas fa-vial me-2"></i>Échantillon {{ sample.barcode }}
+                <span class="badge bg-{{ sample.get_status_badge }} ms-2">{{ sample.get_status_display }}</span>
+            </h4>
+            <div>
+                <a href="{% url 'samples:update' sample.id %}" class="btn btn-sm btn-outline-secondary me-2">
+                    <i class="fas fa-edit me-1"></i> Modifier
+                </a>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="fas fa-print me-1"></i> Imprimer
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="printSampleDetails()">
+                                <i class="fas fa-file-alt me-2"></i> Détails complets
+                            </a>
+                        </li>
+                        {% if sample.qr_code %}
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="printQR('{{ sample.qr_code.url }}')">
+                                <i class="fas fa-qrcode me-2"></i> QR Code seulement
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
                 </div>
             </div>
-            <div class="card-body">
-                <!-- Sample details will be added dynamically -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Informations Patient</h6>
-                        <ul class="list-unstyled">
-                            <li><strong>Nom:</strong> {{ sample.patient }}</li>
-                            <li><strong>ID Patient:</strong> {{ sample.patient.id }}</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Détails Échantillon</h6>
-                        <ul class="list-unstyled">
-                            <li><strong>Type:</strong> {{ sample.sample_type.all|join:", " }}</li>
-                            <li><strong>Date Prélèvement:</strong> {{ sample.collection_date|date:"d/m/Y H:i" }}</li>
-                        </ul>
+        </div>
+
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Informations Échantillon</h5>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Code-barres</dt>
+                                <dd class="col-sm-8">{{ sample.barcode }}</dd>
+
+                                <dt class="col-sm-4">Type(s)</dt>
+                                <dd class="col-sm-8">{{ sample.get_sample_types_display }}</dd>
+
+                                <dt class="col-sm-4">Date de prélèvement</dt>
+                                <dd class="col-sm-8">{{ sample.collection_date|date:"d/m/Y H:i" }}</dd>
+
+                                <dt class="col-sm-4">Date de réception</dt>
+                                <dd class="col-sm-8">{{ sample.received_date|date:"d/m/Y H:i"|default:"Non reçu" }}</dd>
+
+                                {% if sample.status == 'rejected' %}
+                                <dt class="col-sm-4">Motif de rejet</dt>
+                                <dd class="col-sm-8">
+                                    {{ sample.get_rejection_reason_display }}
+                                    {% if sample.rejection_notes %}
+                                    <p class="text-muted mt-1 mb-0">{{ sample.rejection_notes }}</p>
+                                    {% endif %}
+                                </dd>
+                                {% endif %}
+                            </dl>
+                        </div>
                     </div>
                 </div>
 
-                <div class="mt-4">
-                    <h6>Notes</h6>
-                    <div class="border p-3 bg-light">
-                        {{ sample.notes|default:"Aucune note."|linebreaks }}
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Informations Patient</h5>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Nom</dt>
+                                <dd class="col-sm-8">
+                                    <a href="{% url 'patients:detail' sample.patient.id %}">
+                                        {{ sample.patient.full_name }}
+                                    </a>
+                                </dd>
+
+                                <dt class="col-sm-4">Date de naissance</dt>
+                                <dd class="col-sm-8">{{ sample.patient.date_of_birth|date:"d/m/Y" }}</dd>
+
+                                <dt class="col-sm-4">Genre</dt>
+                                <dd class="col-sm-8">{{ sample.patient.get_gender_display }}</dd>
+
+                                <dt class="col-sm-4">Téléphone</dt>
+                                <dd class="col-sm-8">{{ sample.patient.phone_number|default:"-" }}</dd>
+                            </dl>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="card-footer d-flex justify-content-between">
-                <a href="{% url 'samples:update' sample.id %}" class="btn btn-primary">
-                    <i class="fas fa-edit me-1"></i> Modifier
-                </a>
-                <a href="{% url 'samples:list' %}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i> Retour
-                </a>
+
+            <!-- Section QR Code -->
+            <div class="card mb-4">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">QR Code</h5>
+                    {% if sample.qr_code %}
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#qrSettingsModal">
+                            <i class="fas fa-palette me-1"></i> Personnaliser
+                        </button>
+                        <a href="{{ sample.qr_code.url }}" download class="btn btn-sm btn-outline-primary me-2">
+                            <i class="fas fa-download me-1"></i> Télécharger
+                        </a>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="printQR('{{ sample.qr_code.url }}')">
+                            <i class="fas fa-print me-1"></i> Imprimer
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-body text-center">
+                    {% if sample.qr_code %}
+                    <img src="{{ sample.qr_code.url }}" class="img-thumbnail" style="max-width: 200px;" alt="QR Code Échantillon" id="qr-preview">
+                    <div class="mt-3">
+                        <button class="btn btn-sm btn-outline-dark scan-btn" onclick="scanQR()">
+                            <span class="scan-btn-text">
+                                <i class="fas fa-mobile-alt me-1"></i> Tester le scan
+                            </span>
+                        </button>
+                        <input type="file" id="qrUpload" accept="image/*" capture="environment" style="display:none;">
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-circle me-2"></i>QR Code non généré
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="col-lg-4">
-        <div class="card lab-card">
-            <div class="card-header">
-                <h5>QR Code</h5>
+
+            <!-- Notes Section -->
+            {% if sample.notes %}
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Notes</h5>
+                </div>
+                <div class="card-body">
+                    {{ sample.notes|linebreaks }}
+                </div>
             </div>
-            <div class="card-body text-center">
-                {% if sample.qr_code %}
-                <img src="{{ sample.qr_code.url }}" alt="QR Code" class="img-fluid mb-3" style="max-width: 200px;">
-                {% else %}
-                <p class="text-muted">QR Code non généré</p>
-                {% endif %}
-            </div>
+            {% endif %}
         </div>
     </div>
 </div>
+
+<!-- Modal Personnalisation QR Code -->
+<div class="modal fade" id="qrSettingsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Personnalisation du QR Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <form id="qr-custom-form" method="post" action="{% url 'samples:customize_qr' sample.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Couleur de premier plan</label>
+                        <input type="color" class="form-control form-control-color" name="fill_color" value="#000000" id="fillColor">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Couleur d'arrière-plan</label>
+                        <input type="color" class="form-control form-control-color" name="back_color" value="#FFFFFF" id="backColor">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Taille des modules (1-10)</label>
+                        <input type="range" class="form-range" min="1" max="10" value="6" name="box_size" id="boxSize">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Bordure (1-10)</label>
+                        <input type="range" class="form-range" min="1" max="10" value="4" name="border" id="borderSize">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Générer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// QR Code Scanning Function
+function scanQR() {
+    const fileInput = document.getElementById('qrUpload');
+    if (!fileInput.files || !fileInput.files[0]) {
+        fileInput.click();
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('qr_image', fileInput.files[0]);
+
+    // Show loading state
+    const scanBtn = document.querySelector('.scan-btn');
+    const scanBtnText = document.querySelector('.scan-btn-text');
+    if (scanBtn && scanBtnText) {
+        scanBtn.disabled = true;
+        scanBtnText.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Scanning...';
+    }
+
+    fetch('/scan-qr/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    }).then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else {
+            return response.json();
+        }
+    }).then(data => {
+        if (data && data.error) {
+            alert('Erreur: ' + data.error);
+        }
+    }).catch(error => {
+        console.error('Error:', error);
+        alert('Une erreur est survenue lors du scan');
+    }).finally(() => {
+        if (scanBtn && scanBtnText) {
+            scanBtn.disabled = false;
+            scanBtnText.innerHTML = '<i class="fas fa-mobile-alt me-1"></i> Tester le scan';
+        }
+        fileInput.value = '';
+    });
+}
+
+// Setup file input change listener
+document.getElementById('qrUpload').addEventListener('change', scanQR);
+
+// Impression QR Code
+function printQR(qrUrl) {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Échantillon {{ sample.barcode }} - QR Code</title>
+                <style>
+                    body { text-align: center; padding: 20px; }
+                    img { max-width: 300px; height: auto; margin: 20px 0; }
+                    .info { margin-top: 15px; font-family: Arial; }
+                    .info p { margin: 5px 0; }
+                </style>
+            </head>
+            <body>
+                <h2>Échantillon {{ sample.barcode }}</h2>
+                <img src="${qrUrl}">
+                <div class="info">
+                    <p><strong>Patient:</strong> {{ sample.patient.full_name }}</p>
+                    <p><strong>Date prélèvement:</strong> {{ sample.collection_date|date:"d/m/Y" }}</p>
+                    <p><strong>Type:</strong> {{ sample.get_sample_types_display }}</p>
+                </div>
+                <script>window.print();<\/script>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+// Impression détails complets
+function printSampleDetails() {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Échantillon {{ sample.barcode }}</title>
+                <style>
+                    body { font-family: Arial; padding: 20px; }
+                    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f2f2f2; }
+                    .header { text-align: center; margin-bottom: 20px; }
+                    .qr-code { text-align: center; margin: 20px 0; }
+                    .section { margin-bottom: 20px; }
+                    .section-title { border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Échantillon {{ sample.barcode }}</h1>
+                    <p>Imprimé le ${new Date().toLocaleDateString()}</p>
+                </div>
+
+                <div class="section">
+                    <h3 class="section-title">Informations Échantillon</h3>
+                    <table>
+                        <tr>
+                            <th>Code-barres</th>
+                            <td>{{ sample.barcode }}</td>
+                        </tr>
+                        <tr>
+                            <th>Type(s)</th>
+                            <td>{{ sample.get_sample_types_display }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date de prélèvement</th>
+                            <td>{{ sample.collection_date|date:"d/m/Y H:i" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Statut</th>
+                            <td>{{ sample.get_status_display }}</td>
+                        </tr>
+                        {% if sample.status == 'rejected' %}
+                        <tr>
+                            <th>Motif de rejet</th>
+                            <td>{{ sample.get_rejection_reason_display }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+
+                <div class="section">
+                    <h3 class="section-title">Informations Patient</h3>
+                    <table>
+                        <tr>
+                            <th>Nom</th>
+                            <td>{{ sample.patient.full_name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Date de naissance</th>
+                            <td>{{ sample.patient.date_of_birth|date:"d/m/Y" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Genre</th>
+                            <td>{{ sample.patient.get_gender_display }}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                {% if sample.qr_code %}
+                <div class="qr-code">
+                    <h3>QR Code</h3>
+                    <img src="{{ sample.qr_code.url }}" width="150">
+                </div>
+                {% endif %}
+
+                {% if sample.notes %}
+                <div class="section">
+                    <h3 class="section-title">Notes</h3>
+                    <p>{{ sample.notes }}</p>
+                </div>
+                {% endif %}
+
+                <script>window.print();<\/script>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+// Prévisualisation personnalisation QR
+document.getElementById('qr-custom-form').addEventListener('change', function() {
+    const fillColor = document.getElementById('fillColor').value;
+    const backColor = document.getElementById('backColor').value;
+    const boxSize = document.getElementById('boxSize').value;
+    const borderSize = document.getElementById('borderSize').value;
+
+    // Ici vous pourriez ajouter une prévisualisation AJAX si nécessaire
+});
+</script>
 {% endblock %}

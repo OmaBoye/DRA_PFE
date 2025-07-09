@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Batch {{ batch.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .batch-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .batch-qr {
+    max-width: 200px;
+    margin: 0 auto;
+  }
+  .sample-status {
+    width: 120px;
+  }
+  .timeline {
+    position: relative;
+    padding-left: 1rem;
+  }
+  .timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+    padding-left: 1.5rem;
+    border-left: 1px solid #dee2e6;
+  }
+  .timeline-item:last-child {
+    padding-bottom: 0;
+    border-left: 1px solid transparent;
+  }
+  .timeline-point {
+    position: absolute;
+    left: -8px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #6c757d;
+  }
+  .timeline-point-success {
+    background-color: #198754;
+  }
+  .timeline-point-warning {
+    background-color: #ffc107;
+  }
+  .timeline-content {
+    padding-left: 0.5rem;
+  }
+  .analysis-badge {
+    font-size: 0.8rem;
+    margin-top: 0.2rem;
+    display: inline-block;
+  }
+  .sample-actions {
+    white-space: nowrap;
+  }
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+    body {
+      padding: 0;
+      background: white;
+    }
+    .card {
+      border: none;
+      box-shadow: none;
+    }
+    table {
+      width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card">
+    <div class="card-header batch-header d-flex justify-content-between align-items-center">
+      <div>
+        <h4 class="mb-0">Batch {{ batch.name }}</h4>
+        <small class="text-muted">Created {{ batch.created_at|date:"Y-m-d H:i" }}</small>
+      </div>
+      <div class="no-print">
+        {% if not batch.is_processed %}
+        <a href="{% url 'samples:batch_process' batch.pk %}" class="btn btn-success me-2">
+          <i class="fas fa-check-circle me-1"></i> Mark as Processed
+        </a>
+        {% endif %}
+        <button class="btn btn-primary" onclick="window.print()">
+          <i class="fas fa-print me-1"></i> Print
+        </button>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="d-flex align-items-center mb-3">
+            <div class="me-3">
+              <strong>Status:</strong>
+              {% if batch.is_processed %}
+                <span class="badge bg-success">Processed</span>
+              {% else %}
+                <span class="badge bg-warning">Pending</span>
+              {% endif %}
+            </div>
+            <div>
+              <strong>Samples:</strong> {{ batch.samples.count }}
+            </div>
+          </div>
+          <div>
+            <strong>Created by:</strong> {{ batch.created_by.get_full_name }}
+          </div>
+        </div>
+        <div class="col-md-6">
+          {% if batch.is_processed %}
+          <div>
+            <strong>Processed at:</strong> {{ batch.processed_at|date:"Y-m-d H:i" }}
+          </div>
+          {% endif %}
+          {% if batch.batch_qr_code %}
+          <div class="text-center mt-2">
+            <img src="{{ batch.batch_qr_code.url }}" class="batch-qr img-fluid" alt="Batch QR Code">
+            <div class="mt-2">
+              <button class="btn btn-sm btn-outline-secondary no-print" onclick="downloadQR('{{ batch.batch_qr_code.url }}', 'batch_{{ batch.name }}_qr.png')">
+                <i class="fas fa-download me-1"></i> Download QR
+              </button>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5>Samples in Batch</h5>
+        <div class="no-print">
+          <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#qrModalAll">
+            <i class="fas fa-qrcode me-1"></i> View All QR Codes
+          </button>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-light">
+            <tr>
+              <th>Barcode</th>
+              <th>Patient</th>
+              <th>Type</th>
+              <th class="sample-status">Sample Status</th>
+              <th>Analyses</th>
+              <th class="no-print">QR Code</th>
+              <th class="no-print sample-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sample in batch.samples.all %}
+            <tr>
+              <td>
+                <a href="{% url 'samples:detail' sample.pk %}">{{ sample.barcode }}</a>
+              </td>
+              <td>
+                <a href="{% url 'patients:detail' sample.patient.id %}">
+                  {{ sample.patient.full_name }}
+                </a>
+              </td>
+              <td>{{ sample.get_sample_types_display }}</td>
+              <td>
+                <span class="badge bg-{{ sample.get_status_badge }}">
+                  {{ sample.get_status_display }}
+                </span>
+              </td>
+              <td>
+                {% for analysis in sample.analyses.all %}
+                <span class="badge analysis-badge bg-{{ analysis.get_status_badge }}"
+                      title="{{ analysis.analysis_type.name }}"
+                      data-bs-toggle="tooltip">
+                  {{ analysis.get_status_display|slice:":1" }}
+                </span>
+                {% empty %}
+                <span class="text-muted">None</span>
+                {% endfor %}
+              </td>
+              <td class="no-print">
+                {% if sample.qr_code %}
+                <a href="#" data-bs-toggle="modal" data-bs-target="#qrModal{{ sample.id }}">
+                  <img src="{{ sample.qr_code.url }}" width="50" alt="QR Code">
+                </a>
+                {% else %}
+                <span class="text-muted">No QR</span>
+                {% endif %}
+              </td>
+              <td class="no-print sample-actions">
+                <a href="{% url 'samples:detail' sample.pk %}" class="btn btn-sm btn-outline-primary me-1">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <a href="{% url 'analysis:create' %}?sample={{ sample.id }}" class="btn btn-sm btn-outline-success" title="Add Analysis">
+                  <i class="fas fa-plus"></i>
+                </a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-4">
+                <i class="fas fa-vial fa-2x text-muted mb-2"></i>
+                <p class="text-muted">No samples in this batch</p>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Batch Timeline -->
+      <div class="card mt-4">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">Batch Timeline</h5>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            {% if batch.is_processed %}
+            <div class="timeline-item">
+              <div class="timeline-point timeline-point-success"></div>
+              <div class="timeline-content">
+                <small class="text-muted">{{ batch.processed_at|date:"Y-m-d H:i" }}</small>
+                <p class="mb-1">Batch processed</p>
+                <small class="text-muted">{{ batch.samples.count }} samples updated</small>
+              </div>
+            </div>
+            {% endif %}
+
+            <div class="timeline-item">
+              <div class="timeline-point {% if batch.is_processed %}timeline-point-warning{% endif %}"></div>
+              <div class="timeline-content">
+                <small class="text-muted">{{ batch.created_at|date:"Y-m-d H:i" }}</small>
+                <p class="mb-1">Batch created</p>
+                <small class="text-muted">by {{ batch.created_by.get_full_name }}</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Individual QR Code Modals -->
+{% for sample in batch.samples.all %}
+{% if sample.qr_code %}
+<div class="modal fade" id="qrModal{{ sample.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Sample {{ sample.barcode }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img src="{{ sample.qr_code.url }}" class="img-fluid mb-3" alt="Sample QR Code">
+        <div class="mb-3">
+          <p class="mb-1"><strong>Patient:</strong> {{ sample.patient.full_name }}</p>
+          <p class="mb-1"><strong>Collection Date:</strong> {{ sample.collection_date|date:"Y-m-d" }}</p>
+          <p class="mb-1"><strong>Status:</strong> {{ sample.get_status_display }}</p>
+        </div>
+        <button class="btn btn-primary me-2" onclick="downloadQR('{{ sample.qr_code.url }}', 'sample_{{ sample.barcode }}_qr.png')">
+          <i class="fas fa-download me-1"></i> Download
+        </button>
+        <button class="btn btn-outline-secondary" onclick="printQR('{{ sample.qr_code.url }}', '{{ sample.barcode }}')">
+          <i class="fas fa-print me-1"></i> Print
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<!-- All QR Codes Modal -->
+<div class="modal fade" id="qrModalAll" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">All QR Codes in Batch</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          {% for sample in batch.samples.all %}
+          {% if sample.qr_code %}
+          <div class="col-md-3 mb-4 text-center">
+            <img src="{{ sample.qr_code.url }}" class="img-fluid mb-2" alt="Sample QR Code">
+            <p class="mb-1"><strong>{{ sample.barcode }}</strong></p>
+            <p class="small text-muted">{{ sample.patient.full_name }}</p>
+            <button class="btn btn-sm btn-outline-primary" onclick="printQR('{{ sample.qr_code.url }}', '{{ sample.barcode }}')">
+              <i class="fas fa-print me-1"></i> Print
+            </button>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="printAllQRs()">
+          <i class="fas fa-print me-1"></i> Print All
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+// Print single QR code
+function printQR(qrUrl, barcode) {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Sample ${barcode} - QR Code</title>
+                <style>
+                    body { text-align: center; padding: 20px; }
+                    img { max-width: 300px; height: auto; margin: 20px 0; }
+                    .info { margin-top: 15px; font-family: Arial; }
+                    .info p { margin: 5px 0; }
+                </style>
+            </head>
+            <body>
+                <h2>Sample ${barcode}</h2>
+                <img src="${qrUrl}">
+                <div class="info">
+                    <p><strong>Batch:</strong> {{ batch.name }}</p>
+                    <p><strong>Patient:</strong> ${document.querySelector(`#qrModal${barcode} .modal-body p:first-child`).textContent.replace('Patient: ', '')}</p>
+                </div>
+                <script>window.print();<\/script>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+// Print all QR codes
+function printAllQRs() {
+    const printWindow = window.open('', '_blank');
+    let content = `
+        <html>
+            <head>
+                <title>Batch {{ batch.name }} - All QR Codes</title>
+                <style>
+                    body { padding: 20px; }
+                    .qr-container {
+                        display: inline-block;
+                        margin: 10px;
+                        text-align: center;
+                        page-break-inside: avoid;
+                    }
+                    img { max-width: 150px; height: auto; }
+                    .page-break { page-break-after: always; }
+                    @page { size: auto; margin: 10mm; }
+                </style>
+            </head>
+            <body>
+                <h2 style="text-align:center">Batch {{ batch.name }}</h2>
+                <p style="text-align:center">Generated on ${new Date().toLocaleDateString()}</p>
+                <div style="text-align:center">
+    `;
+
+    {% for sample in batch.samples.all %}
+    {% if sample.qr_code %}
+    content += `
+        <div class="qr-container">
+            <img src="{{ sample.qr_code.url }}">
+            <p><strong>{{ sample.barcode }}</strong></p>
+            <p class="small">{{ sample.patient.full_name }}</p>
+        </div>
+    `;
+    {% endif %}
+    {% endfor %}
+
+    content += `
+                </div>
+                <script>window.print();<\/script>
+            </body>
+        </html>
+    `;
+
+    printWindow.document.write(content);
+    printWindow.document.close();
+}
+
+// Download QR code
+function downloadQR(url, filename) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endblock %}

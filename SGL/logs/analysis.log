@@ -1,0 +1,40 @@
+DEBUG 2025-06-20 13:37:24,114 <console> Test message
+DEBUG 2025-06-20 13:37:28,582 <console> Test message
+INFO 2025-06-20 20:15:31,413 signals Successfully created result for analysis 1
+ERROR 2025-06-20 20:15:31,413 signals Failed to process result for equipment 1
+Traceback (most recent call last):
+  File "C:\Users\omaba\PycharmProjects\SGL\analysis\signals.py", line 27, in process_equipment_result
+    generate_result_pdf(result)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\omaba\PycharmProjects\SGL\analysis\services.py", line 29, in generate_result_pdf
+    'now': timezone.now(),
+           ^^^^^^^^^^^^
+AttributeError: type object 'datetime.timezone' has no attribute 'now'
+INFO 2025-06-20 20:16:26,268 signals Successfully created result for analysis 1
+ERROR 2025-06-20 20:16:26,269 signals Failed to process result for equipment 1
+Traceback (most recent call last):
+  File "C:\Users\omaba\PycharmProjects\SGL\analysis\signals.py", line 27, in process_equipment_result
+    generate_result_pdf(result)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "C:\Users\omaba\PycharmProjects\SGL\analysis\services.py", line 30, in generate_result_pdf
+    'now': timezone.now(),
+           ^^^^^^^^^^^^
+AttributeError: 'int' object has no attribute 'now'
+INFO 2025-06-20 20:57:12,025 signals Created result for analysis 1
+INFO 2025-06-20 20:59:08,536 signals Created result for analysis 1
+INFO 2025-06-20 20:59:47,041 signals Created result for analysis 1
+INFO 2025-06-20 21:01:14,624 signals Created result for analysis 1
+INFO 2025-06-20 21:03:36,756 signals Created result for analysis 1
+INFO 2025-06-20 21:04:50,095 signals Created result for analysis 1
+INFO 2025-06-20 21:33:04,020 signals Created result for analysis 1
+INFO 2025-06-20 21:33:19,677 signals Created result for analysis 1
+INFO 2025-06-20 21:38:13,884 signals Created result for analysis 1
+INFO 2025-06-20 21:43:10,780 signals Created result for analysis 1
+INFO 2025-06-20 21:43:39,651 signals Created result for analysis 1
+INFO 2025-06-20 21:44:17,635 signals Created result for analysis 1
+INFO 2025-06-20 21:53:24,863 signals Created result for analysis 1
+INFO 2025-06-20 22:40:06,452 signals Created result for analysis 1
+INFO 2025-06-20 22:40:52,809 signals Created result for analysis 1
+INFO 2025-06-20 22:41:08,936 signals Created result for analysis 1
+INFO 2025-06-21 17:07:22,516 signals Created result for analysis 1
+INFO 2025-06-21 17:08:39,501 signals Created result for analysis 1

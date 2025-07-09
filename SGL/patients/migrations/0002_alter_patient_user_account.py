@@ -7,7 +7,6 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('patient_portal', '0001_initial'),
         ('patients', '0001_initial'),
     ]
 

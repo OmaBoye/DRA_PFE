@@ -51,19 +51,18 @@
       <!-- Role & Password -->
       <div class="form-row">
         <div class="form-group">
-          <label for="{{ form.groups.id_for_label }}">Rôle</label>
-          <select id="{{ form.groups.id_for_label }}" name="{{ form.groups.name }}">
-            {% if form.groups.field.empty_label %}
-              <option value="">{{ form.groups.field.empty_label }}</option>
-            {% endif %}
-            {% for value, label in form.groups.field.choices %}
-              <option value="{{ value }}" {% if value|stringformat:"s" == form.groups.value|stringformat:"s" %}selected{% endif %}>
-                {{ label }}
-              </option>
+          <label for="{{ form.role.id_for_label }}">Rôle <span class="required">*</span></label>
+          <select id="{{ form.role.id_for_label }}" name="{{ form.role.name }}" required>
+            {% for value, label in form.role.field.choices %}
+              {% if value %}  {# Skip empty choice if exists #}
+                <option value="{{ value }}" {% if form.role.value == value %}selected{% endif %}>
+                  {{ label }}
+                </option>
+              {% endif %}
             {% endfor %}
           </select>
-          {% if form.groups.errors %}
-            <div class="invalid-feedback">{{ form.groups.errors }}</div>
+          {% if form.role.errors %}
+            <div class="invalid-feedback">{{ form.role.errors }}</div>
           {% endif %}
         </div>
 
@@ -71,6 +70,9 @@
         <div class="form-group">
           <label for="{{ form.password1.id_for_label }}">Mot de passe <span class="required">*</span></label>
           <input type="password" id="{{ form.password1.id_for_label }}" name="{{ form.password1.name }}" required />
+          {% if form.password1.errors %}
+            <div class="invalid-feedback">{{ form.password1.errors }}</div>
+          {% endif %}
         </div>
         {% endif %}
       </div>
@@ -80,9 +82,21 @@
         <div class="form-group">
           <label for="{{ form.password2.id_for_label }}">Confirmation <span class="required">*</span></label>
           <input type="password" id="{{ form.password2.id_for_label }}" name="{{ form.password2.name }}" required />
+          {% if form.password2.errors %}
+            <div class="invalid-feedback">{{ form.password2.errors }}</div>
+          {% endif %}
         </div>
       </div>
       {% endif %}
+
+      <!-- Additional Fields -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="{{ form.phone_number.id_for_label }}">Téléphone</label>
+          <input type="text" id="{{ form.phone_number.id_for_label }}" name="{{ form.phone_number.name }}"
+                 value="{{ form.phone_number.value|default_if_none:'' }}" />
+        </div>
+      </div>
 
       <!-- Status Toggle -->
       <div class="form-group full-width">
@@ -157,12 +171,14 @@
     font-size: 1rem;
     background-color: #f9fafb;
     transition: border-color 0.3s ease;
+    width: 100%;
   }
   input:focus,
   select:focus {
     border-color: #6a64f1;
     box-shadow: 0 0 8px rgba(106, 100, 241, 0.3);
     background: white;
+    outline: none;
   }
   .form-actions {
     display: flex;

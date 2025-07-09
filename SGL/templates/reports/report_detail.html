@@ -4,97 +4,236 @@
 {% block title %}Détails du Rapport{% endblock %}
 
 {% block breadcrumb_items %}
-<li class="breadcrumb-item"><a href="{% url 'reports:list' %}">Rapports</a></li>
-<li class="breadcrumb-item active">Détails</li>
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'reports:list' %}">Rapports</a></li>
+    <li class="breadcrumb-item active">Détails</li>
+  </ol>
+</nav>
 {% endblock %}
 
 {% block content %}
-<div class="row">
+<div class="container-fluid">
+  <div class="row">
     <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header">
-                <h5>Rapport #{{ report.id }}</h5>
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Rapport #{{ report.id }}</h5>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="formatDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-file-export me-1"></i> {{ report.get_format_display }}
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="formatDropdown">
+                <li><a class="dropdown-item" href="{{ report.file.url }}"><i class="fas fa-download me-2"></i>Télécharger</a></li>
+                <li><a class="dropdown-item" href="{% url 'reports:export_pdf' report.pk %}"><i class="fas fa-file-pdf me-2 text-danger"></i>Export PDF</a></li>
+                <li><a class="dropdown-item" href="{% url 'reports:export_excel' report.pk %}"><i class="fas fa-file-excel me-2 text-success"></i>Export Excel</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{% url 'reports:list' %}"><i class="fas fa-arrow-left me-2"></i>Retour</a></li>
+              </ul>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <ul class="list-unstyled">
-                            <li><strong>Type:</strong> {{ report.get_report_type_display }}</li>
-                            <li><strong>Format:</strong> {{ report.get_format_display }}</li>
-                            <li><strong>Généré par:</strong> {{ report.generated_by.get_full_name|default:report.generated_by.username }}</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <ul class="list-unstyled">
-                            <li><strong>Période:</strong> {{ report.start_date|date:"d/m/Y" }} - {{ report.end_date|date:"d/m/Y" }}</li>
-                            <li><strong>Date Génération:</strong> {{ report.generated_at|date:"d/m/Y H:i" }}</li>
-                            <li><strong>Taille:</strong> {{ report.file.size|filesizeformat }}</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div class="mt-4">
-                    <h5>Paramètres</h5>
-                    <div class="border p-3 bg-light">
-                        <pre>{{ report.parameters_json|pretty_json }}</pre>
-                    </div>
-                </div>
-
-                {% if report.format == 'html' %}
-                <div class="mt-4">
-                    <h5>Contenu</h5>
-                    <div class="border p-3 bg-light">
-                        <iframe src="{{ report.file.url }}" style="width: 100%; height: 500px; border: none;"></iframe>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-            <div class="card-footer">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <a href="{{ report.get_download_url }}" class="btn btn-primary">
-                            <i class="bi bi-download"></i> Télécharger
-                        </a>
-                        <a href="{% url 'reports:export_pdf' report.pk %}" class="btn btn-danger">
-                            <i class="bi bi-file-pdf"></i> PDF
-                        </a>
-                        <a href="{% url 'reports:export_excel' report.pk %}" class="btn btn-success">
-                            <i class="bi bi-file-excel"></i> Excel
-                        </a>
-                    </div>
-                    <a href="{% url 'reports:list' %}" class="btn btn-outline-secondary">
-                        <i class="bi bi-arrow-left"></i> Retour
-                    </a>
-                </div>
-            </div>
+          </div>
         </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="text-muted small mb-1">Type</label>
+                <p class="fw-semibold">{{ report.get_report_type_display }}</p>
+              </div>
+              <div class="mb-3">
+                <label class="text-muted small mb-1">Format</label>
+                <p class="fw-semibold">
+                  <span class="badge bg-light text-dark border">
+                    <i class="fas fa-file-{{ report.format }} me-1"></i>
+                    {{ report.get_format_display }}
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="text-muted small mb-1">Période</label>
+                <p class="fw-semibold">{{ report.start_date|date:"d/m/Y" }} - {{ report.end_date|date:"d/m/Y" }}</p>
+              </div>
+              <div class="mb-3">
+                <label class="text-muted small mb-1">Généré par</label>
+                <p class="fw-semibold">
+                  {% if report.generated_by_user %}
+                    <span class="badge bg-light text-dark">
+                      <i class="fas fa-user me-1"></i>
+                      {{ report.generated_by_user.get_full_name|default:report.generated_by_user.username }}
+                    </span>
+                  {% else %}
+                    {{ report.generated_by }}
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+
     <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header">
-                <h5>Statistiques</h5>
-            </div>
-            <div class="card-body">
-                {% if report.metadata.analyses_count %}
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        Analyses incluses
-                        <span class="badge bg-primary rounded-pill">{{ report.metadata.analyses_count }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        Patients concernés
-                        <span class="badge bg-primary rounded-pill">{{ report.metadata.patients_count }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        Échantillons traités
-                        <span class="badge bg-primary rounded-pill">{{ report.metadata.samples_count }}</span>
-                    </li>
-                </ul>
-                {% else %}
-                <p class="text-muted">Aucune statistique disponible</p>
-                {% endif %}
-            </div>
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+          <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Statistiques</h6>
         </div>
+        <div class="card-body">
+          {% if report.report_type == 'results' and report.parameters.results_count %}
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span>Résultats inclus</span>
+              <span class="badge bg-primary rounded-pill">{{ report.parameters.results_count }}</span>
+            </li>
+            {% if report.parameters.analysis_type %}
+            <li class="list-group-item px-0">
+              <span class="text-muted small">Type d'analyse</span>
+              <div class="fw-semibold">{{ report.parameters.analysis_type }}</div>
+            </li>
+            {% endif %}
+            {% if report.parameters.sample_type %}
+            <li class="list-group-item px-0">
+              <span class="text-muted small">Type d'échantillon</span>
+              <div class="fw-semibold">{{ report.parameters.sample_type }}</div>
+            </li>
+            {% endif %}
+          </ul>
+          {% else %}
+          <div class="text-center py-3">
+            <i class="fas fa-chart-bar fa-2x text-muted mb-2"></i>
+            <p class="text-muted">Aucune statistique disponible</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
     </div>
+  </div>
+
+  {% if report.report_type == 'results' and results %}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+      <h6 class="mb-0"><i class="fas fa-flask me-2"></i>Résultats Inclus</h6>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="bg-light">
+            <tr>
+              <th class="border-top-0">Code Barre</th>
+              <th class="border-top-0">Patient</th>
+              <th class="border-top-0">Analyse</th>
+              <th class="border-top-0">Statut</th>
+              <th class="border-top-0">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for result in results %}
+            <tr>
+              <td>
+                <span class="badge bg-light text-dark border">
+                  {{ result.sample.barcode }}
+                </span>
+              </td>
+              <td>{{ result.sample.patient.full_name }}</td>
+              <td>
+                {% if result.sample.analysis_type %}
+                  <span class="badge bg-light text-dark border">
+                    {{ result.sample.analysis_type }}
+                  </span>
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge bg-{% if result.status == 'completed' %}success{% elif result.status == 'verified' %}primary{% else %}warning{% endif %}">
+                  {{ result.get_status_display }}
+                </span>
+              </td>
+              <td>{{ result.test_date|date:"d/m/Y H:i" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if report.report_type == 'activity' and report.parameters.description %}
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-white">
+      <h6 class="mb-0"><i class="fas fa-tasks me-2"></i>Activité du laboratoire</h6>
+    </div>
+    <div class="card-body">
+      <div class="p-3 bg-light rounded">
+        {{ report.parameters.description|linebreaks }}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if report.report_type == 'performance' and report.parameters.notes %}
+  <div class="card shadow-sm">
+    <div class="card-header bg-white">
+      <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Performances</h6>
+    </div>
+    <div class="card-body">
+      <div class="p-3 bg-light rounded">
+        {{ report.parameters.notes|linebreaks }}
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .card {
+    border: none;
+    border-radius: 0.5rem;
+  }
+  .card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(0,0,0,.05);
+  }
+  .dropdown-menu {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+  }
+  .badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+  }
+  .table thead th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+  }
+  .table td, .table th {
+    vertical-align: middle;
+    padding: 1rem;
+  }
+  .bg-light {
+    background-color: #f8f9fa!important;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Tooltip initialization
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+  tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+  });
+});
+</script>
 {% endblock %}

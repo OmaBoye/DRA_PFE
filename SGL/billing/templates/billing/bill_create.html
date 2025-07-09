@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create New Bill{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-file-invoice-dollar me-2"></i>
+                Create New Bill
+            </h4>
+        </div>
+
+        <div class="card-body">
+            <form method="post"
+                  id="bill-form"
+                  action="{% url 'billing:bill_create' %}"
+                  enctype="multipart/form-data"
+                  novalidate>
+                {% csrf_token %}
+
+                <!-- Error Display -->
+                {% if form.errors %}
+                <div class="alert alert-danger">
+                    <strong>Error!</strong> Please correct the following:
+                    <ul>
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Patient Selection -->
+                <div class="mb-4">
+                    <h5>Select Patient</h5>
+                    <select name="patient_id"
+                            class="form-select {% if form.patient_id.errors %}is-invalid{% endif %}"
+                            required
+                            id="patient-select"
+                            hx-get="{% url 'billing:get_patient_analyses' %}"
+                            hx-target="#analyses-container"
+                            hx-trigger="change">
+                        <option value="">-- Select Patient --</option>
+                        {% for patient in patients %}
+                            <option value="{{ patient.id }}"
+                                    {% if form.patient_id.value == patient.id %}selected{% endif %}>
+                                {{ patient.full_name }} (ID: {{ patient.id }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% if form.patient_id.errors %}
+                        <div class="invalid-feedback">
+                            {{ form.patient_id.errors|join:", " }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- QR Code Display -->
+                <div class="mb-3 text-center" id="qr-container">
+                    <p class="text-muted">Patient QR code will appear here</p>
+                </div>
+
+                <!-- Analyses Selection -->
+                <div class="mb-4">
+                    <h5>Select Analyses to Bill</h5>
+                    <div id="analyses-container" class="border p-3 rounded bg-light">
+                        <div class="alert alert-info">
+                            Please select a patient to view their unbilled analyses
+                        </div>
+                    </div>
+                    {% if form.analyses.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.analyses.errors|join:", " }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Bill Details -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="id_amount" class="form-label">Amount ($)</label>
+                        <input type="number"
+                               name="amount"
+                               step="0.01"
+                               min="0"
+                               class="form-control {% if form.amount.errors %}is-invalid{% endif %}"
+                               required
+                               id="id_amount"
+                               value="{{ form.amount.value|default_if_none:'' }}">
+                        {% if form.amount.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.amount.errors|join:", " }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="id_status" class="form-label">Status</label>
+                        <select name="status"
+                                class="form-select {% if form.status.errors %}is-invalid{% endif %}"
+                                required
+                                id="id_status">
+                            <option value="">-- Select Status --</option>
+                            {% for value, display in form.fields.status.choices %}
+                                <option value="{{ value }}"
+                                        {% if form.status.value == value %}selected{% endif %}>
+                                    {{ display }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.status.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.status.errors|join:", " }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="{% url 'billing:bill_list' %}" class="btn btn-secondary me-2">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="submit-btn">
+                        <span id="submit-spinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                        Create Bill
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- HTMX Library -->
+<script src="https://unpkg.com/htmx.org@1.9.6"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('bill-form');
+    const patientSelect = document.getElementById('patient-select');
+    const qrContainer = document.getElementById('qr-container');
+
+    // Live patient QR code display
+    patientSelect.addEventListener('change', function() {
+        const patientId = this.value;
+
+        if (patientId) {
+            // Clear previous QR code
+            qrContainer.innerHTML = '<div class="spinner-border text-primary"></div>';
+
+            // Fetch patient details
+            fetch(`/api/patients/${patientId}/qr/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.qr_code_url) {
+                        qrContainer.innerHTML = `
+                            <h6>Patient QR Code</h6>
+                            <img src="${data.qr_code_url}" class="img-fluid" style="max-height: 200px;">
+                            <p class="text-muted mt-2">Scan for patient details</p>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    qrContainer.innerHTML = '<div class="alert alert-danger">Failed to load QR code</div>';
+                    console.error('Error:', error);
+                });
+        } else {
+            qrContainer.innerHTML = '<p class="text-muted">Patient QR code will appear here</p>';
+        }
+    });
+
+    // Form submission handling
+    form.addEventListener('submit', function(e) {
+        const submitBtn = document.getElementById('submit-btn');
+        const spinner = document.getElementById('submit-spinner');
+
+        // Show loading state
+        submitBtn.disabled = true;
+        spinner.classList.remove('d-none');
+
+        // Validate required fields
+        const patientId = patientSelect.value;
+        const analysesChecked = document.querySelectorAll('input[name="analyses"]:checked').length > 0;
+        const statusSelected = document.getElementById('id_status').value;
+        const amountValid = document.getElementById('id_amount').reportValidity();
+
+        if (!patientId || !analysesChecked || !statusSelected || !amountValid) {
+            e.preventDefault();
+            submitBtn.disabled = false;
+            spinner.classList.add('d-none');
+
+            // Scroll to first error
+            if (!patientId) {
+                patientSelect.focus();
+            } else if (!analysesChecked) {
+                document.getElementById('analyses-container').scrollIntoView();
+            } else if (!statusSelected) {
+                document.getElementById('id_status').focus();
+            }
+            return;
+        }
+    });
+
+    // Handle HTMX after swap
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === 'analyses-container') {
+            // Initialize any new elements in the analyses container
+        }
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    #analyses-container {
+        min-height: 150px;
+    }
+    .is-invalid {
+        border-color: #dc3545;
+    }
+    .invalid-feedback {
+        display: block;
+        color: #dc3545;
+    }
+    #submit-spinner {
+        vertical-align: middle;
+    }
+    #qr-container img {
+        max-width: 100%;
+        height: auto;
+    }
+</style>
+{% endblock %}

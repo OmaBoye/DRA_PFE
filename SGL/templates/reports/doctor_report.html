@@ -1,0 +1,11 @@
+<h1>Daily Report for Dr. {{ doctor.name }}</h1>
+<table>
+    <tr><th>Sample ID</th><th>Patient</th><th>Result</th></tr>
+    {% for sample in samples %}
+    <tr>
+        <td>{{ sample.barcode }}</td>
+        <td>{{ sample.patient.full_name }}</td>
+        <td>{{ sample.result.status }}</td>
+    </tr>
+    {% endfor %}
+</table>

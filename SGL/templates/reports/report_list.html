@@ -39,6 +39,7 @@
             <th>Généré par</th>
             <th>Date Génération</th>
             <th>Format</th>
+            <th>Statut</th>
             <th class="text-end">Actions</th>
           </tr>
         </thead>
@@ -51,22 +52,49 @@
               {{ report.start_date|date:"d/m/Y" }} -
               {{ report.end_date|date:"d/m/Y" }}
             </td>
-            <td>{{ report.generated_by.get_full_name|default:report.generated_by.username }}</td>
-            <td>{{ report.generated_at|date:"d/m/Y H:i" }}</td>
+            <td>
+              {% if report.generated_by_user %}
+                {{ report.generated_by_user.get_full_name|default:report.generated_by_user.username }}
+              {% else %}
+                {{ report.generated_by }}
+              {% endif %}
+            </td>
+            <td>{{ report.created_at|date:"d/m/Y H:i" }}</td>
             <td>{{ report.get_format_display }}</td>
+            <td>
+              {% if report.file %}
+                <span class="badge bg-success">Disponible</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Sans fichier</span>
+              {% endif %}
+            </td>
             <td class="text-end">
               <div class="btn-group btn-group-sm">
-                <a href="{{ report.get_download_url }}" class="btn btn-outline-primary" title="Télécharger">
-                  <i class="fas fa-download"></i>
-                </a>
+                {% if report.file %}
+                  <a href="{{ report.file.url }}" class="btn btn-outline-primary" title="Télécharger">
+                    <i class="fas fa-download"></i>
+                  </a>
+                {% else %}
+                  <button class="btn btn-outline-secondary" disabled title="Fichier non disponible">
+                    <i class="fas fa-download"></i>
+                  </button>
+                {% endif %}
                 <a href="{% url 'reports:detail' report.id %}" class="btn btn-outline-secondary" title="Voir">
                   <i class="fas fa-eye"></i>
                 </a>
+                <button class="btn btn-outline-danger delete-report"
+                        data-id="{{ report.id }}"
+                        data-url="{% url 'reports:delete' report.id %}"
+                        title="Supprimer">
+                  <i class="fas fa-trash"></i>
+                </button>
               </div>
             </td>
           </tr>
           {% empty %}
-
+          <tr>
+            <td colspan="8" class="text-center">Aucun rapport disponible</td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
@@ -107,24 +135,74 @@
     {% endif %}
   </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmer la suppression</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Êtes-vous sûr de vouloir supprimer ce rapport? Cette action est irréversible.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <a id="confirmDelete" href="#" class="btn btn-danger">Supprimer</a>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Type filter handling
     const typeFilter = document.getElementById('typeFilter');
     if (typeFilter) {
         typeFilter.addEventListener('change', function() {
             const type = this.value;
             let url = "{% url 'reports:list' %}";
-
             if (type) {
                 url += `?type=${type}`;
             }
-
             window.location.href = url;
         });
     }
+
+    // Delete report handling
+    const deleteButtons = document.querySelectorAll('.delete-report');
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    const confirmDelete = document.getElementById('confirmDelete');
+
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const reportId = this.getAttribute('data-id');
+            const deleteUrl = this.getAttribute('data-url');
+            confirmDelete.setAttribute('href', deleteUrl);
+            deleteModal.show();
+        });
+    });
+
+    confirmDelete.addEventListener('click', function(e) {
+        e.preventDefault();
+        fetch(this.getAttribute('href'), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        }).then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Erreur lors de la suppression');
+            }
+        });
+        deleteModal.hide();
+    });
 });
 </script>
 {% endblock %}

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Détails de l'Analyse{% endblock %}
+{% block title %}Détails de l'Analyse #{{ analysis.id }}{% endblock %}
 
 {% block breadcrumb_items %}
 <nav aria-label="breadcrumb" class="mb-4">
@@ -22,10 +22,16 @@
   <div class="col-xl-8">
     <div class="card">
       <div class="card-header d-flex justify-content-between align-items-center bg-white py-3">
-        <h5 class="card-title mb-0">Analyse #{{ analysis.id }}</h5>
+        <h5 class="card-title mb-0">
+          Analyse #{{ analysis.id }}
+          <span class="badge bg-{{ analysis.get_priority_badge }} ms-2">
+            {{ analysis.get_priority_display }}
+          </span>
+        </h5>
         <div>
-          <span class="badge bg-{{ analysis.get_priority_badge }} me-2">{{ analysis.get_priority_display }}</span>
-          <span class="badge bg-{{ analysis.get_status_badge }}">{{ analysis.get_status_display }}</span>
+          <span class="badge bg-{{ analysis.get_status_badge }}">
+            {{ analysis.get_status_display }}
+          </span>
         </div>
       </div>
       <div class="card-body">
@@ -39,15 +45,19 @@
                 <ul class="list-group list-group-flush">
                   <li class="list-group-item d-flex justify-content-between align-items-center">
                     <span class="text-muted">Code Barre:</span>
-                    <span class="fw-medium">{{ analysis.sample.barcode }}</span>
+                    <a href="{% url 'samples:detail' analysis.sample.id %}" class="fw-medium">
+                      {{ analysis.sample.barcode }}
+                    </a>
                   </li>
                   <li class="list-group-item d-flex justify-content-between align-items-center">
                     <span class="text-muted">Patient:</span>
-                    <span class="fw-medium">{{ analysis.sample.patient.full_name }}</span>
+                    <a href="{% url 'patients:detail' analysis.sample.patient.id %}" class="fw-medium">
+                      {{ analysis.sample.patient.full_name }}
+                    </a>
                   </li>
                   <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span class="text-muted">Type Échantillon:</span>
-                    <span class="fw-medium">{{ analysis.sample.get_sample_type_display }}</span>
+                    <span class="text-muted">Type(s):</span>
+                    <span class="fw-medium">{{ analysis.sample.get_sample_types_display }}</span>
                   </li>
                   <li class="list-group-item d-flex justify-content-between align-items-center">
                     <span class="text-muted">Date Prélèvement:</span>
@@ -65,12 +75,12 @@
               <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
                   <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span class="text-muted">Type Analyse:</span>
+                    <span class="text-muted">Type d'analyse:</span>
                     <span class="fw-medium">{{ analysis.analysis_type.name }}</span>
                   </li>
                   <li class="list-group-item d-flex justify-content-between align-items-center">
                     <span class="text-muted">Demandé par:</span>
-                    <span class="fw-medium">{{ analysis.requested_by.get_full_name }}</span>
+                    <span class="fw-medium">{{ analysis.created_by.get_full_name }}</span>
                   </li>
                   <li class="list-group-item d-flex justify-content-between align-items-center">
                     <span class="text-muted">Date Demande:</span>
@@ -78,7 +88,7 @@
                   </li>
                   <li class="list-group-item d-flex justify-content-between align-items-center">
                     <span class="text-muted">Technicien:</span>
-                    <span class="fw-medium">{{ analysis.technician.get_full_name|default:"-" }}</span>
+                    <span class="fw-medium">{{ analysis.technician|default:"-" }}</span>
                   </li>
                 </ul>
               </div>
@@ -86,50 +96,88 @@
           </div>
         </div>
 
+        <!-- Equipment & Processing Section -->
         <div class="card border-light mb-4">
           <div class="card-header bg-light py-2">
-            <h6 class="mb-0">Notes</h6>
+            <h6 class="mb-0">Équipement & Processus</h6>
           </div>
           <div class="card-body">
-            <div class="alert alert-light">
-              {{ analysis.notes|default:"Aucune note."|linebreaks }}
+            <div class="row">
+              <div class="col-md-6">
+                <p class="mb-2">
+                  <span class="text-muted">Instrument utilisé:</span>
+                  <span class="fw-medium">{{ analysis.instrument_used|default:"Non spécifié" }}</span>
+                </p>
+                {% if analysis.started_at %}
+                <p class="mb-2">
+                  <span class="text-muted">Commencé le:</span>
+                  <span class="fw-medium">{{ analysis.started_at|date:"d/m/Y H:i" }}</span>
+                </p>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                {% if analysis.completed_at %}
+                <p class="mb-2">
+                  <span class="text-muted">Terminé le:</span>
+                  <span class="fw-medium">{{ analysis.completed_at|date:"d/m/Y H:i" }}</span>
+                </p>
+                {% endif %}
+                {% if analysis.qc_status %}
+                <p class="mb-2">
+                  <span class="text-muted">Contrôle qualité:</span>
+                  <span class="badge bg-{% if analysis.qc_status == 'pass' %}success{% else %}warning{% endif %}">
+                    {{ analysis.qc_status|capfirst }}
+                  </span>
+                </p>
+                {% endif %}
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="card border-light">
+        <!-- Blood Panels Section -->
+        {% if display_panels %}
+        <div class="card border-light mb-4">
           <div class="card-header bg-light py-2">
-            <h6 class="mb-0">Résultats Associés</h6>
+            <h6 class="mb-0">Panneaux Sanguins</h6>
           </div>
-          <div class="card-body p-0">
-            {% if analysis.result_set.all %}
-            <div class="list-group list-group-flush">
-              {% for result in analysis.result_set.all %}
-              <a href="{% url 'results:detail' result.id %}" class="list-group-item list-group-item-action">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 class="mb-1">Résultat #{{ result.id }}</h6>
-                    <small class="text-muted">{{ result.created_at|date:"d/m/Y H:i" }}</small>
-                  </div>
-                  <div>
-                    <span class="badge bg-{{ result.get_status_badge }}">{{ result.get_status_display }}</span>
-                  </div>
-                </div>
-              </a>
+          <div class="card-body">
+            <div class="d-flex flex-wrap gap-2">
+              {% for panel in display_panels %}
+              <span class="badge bg-primary">{{ panel }}</span>
               {% endfor %}
             </div>
-            {% else %}
-            <div class="alert alert-warning m-3">
-              <i class="fas fa-exclamation-circle me-2"></i>Aucun résultat associé
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Notes Section -->
+        <div class="card border-light">
+          <div class="card-header bg-light py-2">
+            <h6 class="mb-0">Notes</h6>
+          </div>
+          <div class="card-body">
+            {% if analysis.notes %}
+            <div class="alert alert-light mb-0">
+              {{ analysis.notes|linebreaks }}
             </div>
+            {% else %}
+            <p class="text-muted mb-0">Aucune note.</p>
             {% endif %}
           </div>
         </div>
       </div>
       <div class="card-footer bg-white d-flex justify-content-between py-3">
-        <a href="{% url 'analysis:update' analysis.id %}" class="btn btn-primary">
-          <i class="fas fa-edit me-2"></i>Modifier
-        </a>
+        <div>
+          <a href="{% url 'analysis:update' analysis.id %}" class="btn btn-primary me-2">
+            <i class="fas fa-edit me-2"></i>Modifier
+          </a>
+          {% if analysis.status != 'completed' and analysis.status != 'verified' %}
+          <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#completeModal">
+            <i class="fas fa-check-circle me-2"></i>Marquer comme terminé
+          </button>
+          {% endif %}
+        </div>
         <a href="{% url 'analysis:list' %}" class="btn btn-outline-secondary">
           <i class="fas fa-arrow-left me-2"></i>Retour
         </a>
@@ -137,52 +185,146 @@
     </div>
   </div>
   <div class="col-xl-4">
+    <!-- Status Timeline -->
     <div class="card mb-4">
       <div class="card-header bg-white py-3">
-        <h5 class="card-title mb-0">Protocole d'Analyse</h5>
+        <h5 class="card-title mb-0">Chronologie</h5>
       </div>
       <div class="card-body">
-        {% if analysis.analysis_type.protocol %}
-        <div class="alert alert-info">
-          <h6 class="alert-heading">{{ analysis.analysis_type.name }}</h6>
-          <hr>
-          {{ analysis.analysis_type.protocol|linebreaks }}
-        </div>
-        {% else %}
-        <div class="alert alert-warning">
-          <i class="fas fa-exclamation-circle me-2"></i>Aucun protocole disponible
-        </div>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header bg-white py-3">
-        <h5 class="card-title mb-0">Historique</h5>
-      </div>
-      <div class="card-body">
-        {% if analysis.history.all %}
         <div class="timeline">
-          {% for entry in analysis.history.all|slice:":5" %}
+          {% if analysis.completed_at %}
           <div class="timeline-item">
-            <div class="timeline-point"></div>
+            <div class="timeline-point timeline-point-success"></div>
             <div class="timeline-content">
-              <small class="text-muted">{{ entry.history_date|date:"d/m/Y H:i" }}</small>
-              <p class="mb-1">{{ entry.get_history_type_display }} par {{ entry.history_user.get_full_name }}</p>
-              {% if entry.history_change_reason %}
-              <small class="text-muted">Note: {{ entry.history_change_reason }}</small>
+              <small class="text-muted">{{ analysis.completed_at|date:"d/m/Y H:i" }}</small>
+              <p class="mb-1">Analyse terminée</p>
+              {% if analysis.verified_by %}
+              <small class="text-muted">Validé par: {{ analysis.verified_by.get_full_name }}</small>
               {% endif %}
             </div>
           </div>
-          {% endfor %}
+          {% endif %}
+
+          {% if analysis.started_at %}
+          <div class="timeline-item">
+            <div class="timeline-point timeline-point-info"></div>
+            <div class="timeline-content">
+              <small class="text-muted">{{ analysis.started_at|date:"d/m/Y H:i" }}</small>
+              <p class="mb-1">Analyse commencée</p>
+              <small class="text-muted">Technicien: {{ analysis.technician|default:"-" }}</small>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="timeline-item">
+            <div class="timeline-point"></div>
+            <div class="timeline-content">
+              <small class="text-muted">{{ analysis.created_at|date:"d/m/Y H:i" }}</small>
+              <p class="mb-1">Analyse créée</p>
+              <small class="text-muted">Par: {{ analysis.created_by.get_full_name }}</small>
+            </div>
+          </div>
         </div>
-        {% else %}
-        <div class="alert alert-warning">
-          <i class="fas fa-exclamation-circle me-2"></i>Aucun historique disponible
-        </div>
-        {% endif %}
+      </div>
+    </div>
+
+    <!-- Related Analyses -->
+    <div class="card">
+      <div class="card-header bg-white py-3">
+        <h5 class="card-title mb-0">Analyses associées</h5>
+      </div>
+      <div class="card-body">
+        {% with related=analysis.sample.analyses.all %}
+          {% if related.count > 1 %}
+          <ul class="list-group list-group-flush">
+            {% for a in related %}
+              {% if a.id != analysis.id %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="{% url 'analysis:detail' a.id %}" class="text-decoration-none">
+                  {{ a.analysis_type.name }}
+                </a>
+                <span class="badge bg-{{ a.get_status_badge }}">
+                  {{ a.get_status_display }}
+                </span>
+              </li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="text-muted mb-0">Aucune autre analyse pour cet échantillon.</p>
+          {% endif %}
+        {% endwith %}
       </div>
     </div>
   </div>
 </div>
+
+<!-- Complete Analysis Modal -->
+<div class="modal fade" id="completeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmer la complétion</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" action="{% url 'analysis:detail' analysis.id %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p>Êtes-vous sûr de vouloir marquer cette analyse comme terminée?</p>
+          <div class="mb-3">
+            <label for="qcStatus" class="form-label">Statut QC</label>
+            <select class="form-select" id="qcStatus" name="qc_status" required>
+              <option value="">Sélectionner...</option>
+              <option value="pass">Pass</option>
+              <option value="fail">Fail</option>
+              <option value="pending">Pending Review</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="completionNotes" class="form-label">Notes</label>
+            <textarea class="form-control" id="completionNotes" name="notes" rows="3"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-success">Confirmer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .timeline {
+    position: relative;
+    padding-left: 1rem;
+  }
+  .timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+    padding-left: 1.5rem;
+    border-left: 1px solid #dee2e6;
+  }
+  .timeline-item:last-child {
+    padding-bottom: 0;
+    border-left: 1px solid transparent;
+  }
+  .timeline-point {
+    position: absolute;
+    left: -8px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: #6c757d;
+  }
+  .timeline-point-success {
+    background-color: #198754;
+  }
+  .timeline-point-info {
+    background-color: #0dcaf0;
+  }
+  .timeline-content {
+    padding-left: 0.5rem;
+  }
+</style>
 {% endblock %}

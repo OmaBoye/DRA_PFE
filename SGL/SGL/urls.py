@@ -17,6 +17,10 @@ urlpatterns = [
     path('results/', include('results.urls', namespace='results')),
     path('reports/', include('reports.urls', namespace='reports')),
     path('users/', include('users.urls', namespace='users')),
+    path('billing/', include('billing.urls', namespace='billing')),
+
+
+
     path('portal/', include('patient_portal.urls')),
 
 ]
